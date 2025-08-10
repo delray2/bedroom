@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Wall Switch Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#232526">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="video-stream.js"></script>
+  <script src="video-stream.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="animated-bg"></div>
+  <!-- Modern Clock -->
+  <div class="clock">
+    <div class="date" id="currentDate"></div>
+    <div class="time" id="currentTime"></div>
+  </div>
+
+  <div class="switch-card">
+    <div class="wall-plate">
+      <div class="paddle-switch off" id="paddleSwitch">
+        <span class="power-icon">⏻</span>
+      </div>
+    </div>
+    <div class="side-btns side-btns-visible" id="sideBtns">
+      <button class="side-btn" title="TV" aria-label="TV" data-action="showTvModal">📺</button>
+      <button class="side-btn" title="Lights" aria-label="Lights" data-action="showBubbleChartModal">💡</button>
+      <button class="side-btn" title="Vacuum" aria-label="Vacuum" data-action="showVacuumModal">🤖</button>
+      <button class="side-btn" title="Camera" aria-label="Camera" data-action="showCameraModal">📷</button>
+      <button class="side-btn" title="Music" aria-label="Music" data-action="showMusicModal">🎵</button>
+      <!-- Theme toggle button -->
+      <button class="side-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">🌙</button>
+    </div>
+  </div>
+
+  <!-- Simple Modal -->
+
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal bubble" id="modalContent">
+      <button class="back-modal" id="backModal" style="display:none;">&#8592; Back</button>
+      <button class="close-modal" id="closeModal">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div class="modal-bg" id="cameraModalBg">
+    <div id="cameraModal">
+      <!-- Video element will be dynamically inserted here -->
+      <button class="close-modal" id="closeCameraModal">&times;</button>
+    </div>
+  </div>
+  <!-- External JavaScript files -->
+  <script src="scripts/main.js"></script>
+  <script src="scripts/modal.js"></script>
+  <script src="scripts/ui.js"></script>
+  <script src="scripts/api.js" type="module"></script>
+  <script src="scripts/ui-manager.js"></script>
+  <script src="scripts/devices.js"></script>
+  <script src="scripts/scenes.js" type="module"></script>
+  <script src="scripts/controls.js"></script>
+  <script src="scripts/camera.js"></script>
+</body>
+</html>
