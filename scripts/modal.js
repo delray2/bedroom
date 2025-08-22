@@ -76,14 +76,8 @@ window.showModal = function(html, showBack = false) {
 function showModalContent(html, showBack = false, triggerSelector = null) {
   debugLog('showModalContent called, showBack: ' + showBack + ', triggerSelector: ' + triggerSelector);
   
-  // Check if HTML already has modal-content wrapper
-  if (html.includes('modal-content')) {
-    // Already wrapped, use as is
-    document.getElementById('modalBody').innerHTML = html;
-  } else {
-    // Wrap in modal-content
-    document.getElementById('modalBody').innerHTML = `<div class="modal-content">${html}</div>`;
-  }
+  // Set the HTML directly without wrapping
+  document.getElementById('modalBody').innerHTML = html;
   
   document.getElementById('backModal').style.display = showBack ? 'block' : 'none';
   showModalBg(triggerSelector);

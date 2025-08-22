@@ -1,17 +1,33 @@
 {
   "name": "hubitat-dashboard",
   "version": "1.0.0",
-  "description": "Smart Wall Switch Dashboard",
+  "description": "Smart Wall Switch Dashboard with Real-Time State Management",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "install-deps": "npm install"
+    "install-deps": "npm install",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "test-webhook": "node test-webhook.js"
   },
   "dependencies": {
     "electron": "^29.3.0",
     "express": "^4.21.2",
     "ws": "^8.15.1"
-  }
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0"
+  },
+  "keywords": [
+    "hubitat",
+    "smart-home",
+    "dashboard",
+    "electron",
+    "real-time",
+    "state-management"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
 
 

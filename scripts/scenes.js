@@ -4,9 +4,9 @@ const lifxScenes = [
     name: 'White',
     gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f7f7f7 35%, #ebebeb 70%, #dcdcdc 100%)',
     bulbs: [
-      { deviceId: '449', color: '#ffffff', brightness: 100, temp: 4000 }, // Fan 1
-      { deviceId: '446', color: '#ffffff', brightness: 100, temp: 4000 }, // Fan 2
-      { deviceId: '452', color: '#ffffff', brightness: 100, temp: 4000 }  // Table
+      { deviceId: '487', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1
+      { deviceId: '451', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 2
+      { deviceId: '447', color: '#ffffff', brightness: 100, temp: 4000 }  // Bed Lamp
     ],
     wled: {
       palette: 0,  // Default palette
@@ -19,9 +19,9 @@ const lifxScenes = [
     name: 'Sunset',
     gradient: 'conic-gradient(from 200deg at 50% 50%, #ff4500 0%, #ff6347 25%, #ffd700 50%, #ff8c00 75%, #dc143c 100%)',
     bulbs: [
-      { deviceId: '449', color: '#ff4500', brightness: 80, temp: 2700 },  // Fan 1 - Red-orange
-      { deviceId: '446', color: '#ffd700', brightness: 70, temp: 3000 },  // Fan 2 - Gold
-      { deviceId: '452', color: '#ff6347', brightness: 60, temp: 3500 }   // Table - Tomato red
+      { deviceId: '487', color: '#ff4500', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Red-orange
+      { deviceId: '451', color: '#ffd700', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Gold
+      { deviceId: '447', color: '#ff6347', brightness: 60, temp: 3500 }   // Bed Lamp - Tomato red
     ],
     wled: {
       palette: 45, // Sunset palette
@@ -33,9 +33,9 @@ const lifxScenes = [
     name: 'Ocean',
     gradient: 'radial-gradient(circle at 40% 30%, #006994 0%, #00bfff 40%, #87ceeb 75%, #e0f6ff 100%)',
     bulbs: [
-      { deviceId: '449', color: '#000080', brightness: 85, temp: 6500 },  // Fan 1 - Navy blue
-      { deviceId: '446', color: '#00bfff', brightness: 75, temp: 7000 },  // Fan 2 - Deep sky blue
-      { deviceId: '452', color: '#87ceeb', brightness: 65, temp: 6000 }   // Table - Sky blue
+      { deviceId: '487', color: '#000080', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Navy blue
+      { deviceId: '451', color: '#00bfff', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Deep sky blue
+      { deviceId: '447', color: '#87ceeb', brightness: 65, temp: 6000 }   // Bed Lamp - Sky blue
     ],
     wled: {
       palette: 37, // Tropical palette
@@ -47,9 +47,9 @@ const lifxScenes = [
     name: 'Forest',
     gradient: 'radial-gradient(circle at 60% 40%, #2d5016 0%, #4a7c59 30%, #ffffff 55%, rgb(58, 7, 111) 75%, #8b4513 100%)',
     bulbs: [
-      { deviceId: '449', color: '#2d5016', brightness: 80, temp: 5000 },  // Fan 1 - Dark green
-      { deviceId: '446', color: '#4a7c59', brightness: 70, temp: 5500 },  // Fan 2 - Forest green
-      { deviceId: '452', color: '#ffffff', brightness: 60, temp: 5200 }   // Table - White
+      { deviceId: '487', color: '#2d5016', brightness: 80, temp: 5000 },  // Bedroom Fan 1 - Dark green
+      { deviceId: '451', color: '#4a7c59', brightness: 70, temp: 5500 },  // Bedroom Fan 2 - Forest green
+      { deviceId: '447', color: '#ffffff', brightness: 60, temp: 5200 }   // Bed Lamp - White
     ],
     wled: {
       palette: 55, // Forest palette
@@ -61,9 +61,9 @@ const lifxScenes = [
     name: 'Candlelight',
     gradient: 'radial-gradient(circle at 50% 45%, #ffd452 0%, #ffb347 45%, #ff6961 100%)',
     bulbs: [
-      { deviceId: '449', color: '#ffd452', brightness: 60, temp: 2200 },  // Fan 1 - Warm yellow
-      { deviceId: '446', color: '#ffb347', brightness: 50, temp: 2500 },  // Fan 2 - Orange
-      { deviceId: '452', color: '#ff6961', brightness: 40, temp: 2800 }   // Table - Soft red
+      { deviceId: '487', color: '#ffd452', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
+      { deviceId: '451', color: '#ffb347', brightness: 50, temp: 2500 },  // Bedroom Fan 2 - Orange
+      { deviceId: '447', color: '#ff6961', brightness: 40, temp: 2800 }   // Bed Lamp - Soft red
     ],
     wled: {
       palette: 65, // Party palette
@@ -75,9 +75,9 @@ const lifxScenes = [
     name: 'Magenta Dream',
     gradient: 'conic-gradient(from 90deg at 50% 50%, #ff61a6 0%, #a18cd1 50%, #4a90e2 100%)',
     bulbs: [
-      { deviceId: '449', color: '#ff61a6', brightness: 75, temp: 3500 },  // Fan 1 - Magenta
-      { deviceId: '446', color: '#a18cd1', brightness: 65, temp: 4000 },  // Fan 2 - Purple
-      { deviceId: '452', color: '#4a90e2', brightness: 55, temp: 4500 }   // Table - Blue
+      { deviceId: '487', color: '#ff61a6', brightness: 75, temp: 3500 },  // Bedroom Fan 1 - Magenta
+      { deviceId: '451', color: '#a18cd1', brightness: 65, temp: 4000 },  // Bedroom Fan 2 - Purple
+      { deviceId: '447', color: '#4a90e2', brightness: 55, temp: 4500 }   // Bed Lamp - Blue
     ],
     wled: {
       palette: 0,  // Rainbow palette
@@ -89,9 +89,9 @@ const lifxScenes = [
     name: 'Aurora',
     gradient: 'conic-gradient(at 50% 50%, #00ff87 0%, #00ffff 20%, #0080ff 40%, #8000ff 60%, #ff0080 80%, #ffff00 100%)',
     bulbs: [
-      { deviceId: '449', color: '#00ff87', brightness: 70, temp: 5000 },  // Fan 1 - Spring green
-      { deviceId: '446', color: '#00ffff', brightness: 60, temp: 6000 },  // Fan 2 - Cyan
-      { deviceId: '452', color: '#8000ff', brightness: 50, temp: 7000 }   // Table - Purple
+      { deviceId: '487', color: '#00ff87', brightness: 70, temp: 5000 },  // Bedroom Fan 1 - Spring green
+      { deviceId: '451', color: '#00ffff', brightness: 60, temp: 6000 },  // Bedroom Fan 2 - Cyan
+      { deviceId: '447', color: '#8000ff', brightness: 50, temp: 7000 }   // Bed Lamp - Purple
     ],
     wled: {
       palette: 0,  // Rainbow palette
@@ -103,9 +103,9 @@ const lifxScenes = [
     name: 'Cozy',
     gradient: 'radial-gradient(circle at 40% 60%, #ff9a9e 0%, #fecfef 50%, #ffd1dc 100%)',
     bulbs: [
-      { deviceId: '449', color: '#ff9a9e', brightness: 65, temp: 3000 },  // Fan 1 - Soft pink
-      { deviceId: '446', color: '#fecfef', brightness: 55, temp: 3200 },  // Fan 2 - Light pink
-      { deviceId: '452', color: '#ffb3ba', brightness: 45, temp: 3100 }   // Table - Medium pink
+      { deviceId: '487', color: '#ff9a9e', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Soft pink
+      { deviceId: '451', color: '#fecfef', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
+      { deviceId: '447', color: '#ffb3ba', brightness: 45, temp: 3100 }   // Bed Lamp - Medium pink
     ],
     wled: {
       palette: 45, // Sunset palette
@@ -117,8 +117,14 @@ const lifxScenes = [
 
 // WLED Device IPs - Direct HTTP API control
 const WLED_DEVICES = {
-  'lrwall': '192.168.4.24'   // LRWall WLED device - direct HTTP API
+  'bedroom1': '192.168.4.137',   // Bedroom WLED device 1
+  'bedroom2': '192.168.4.52'     // Bedroom WLED device 2
 };
+
+// Safe access to Hubitat Maker API globals
+const MAKER = typeof window !== 'undefined' ? (window.MAKER_API_BASE || '') : '';
+const TOKEN = typeof window !== 'undefined' ? (window.ACCESS_TOKEN || '') : '';
+const LRID = typeof window !== 'undefined' ? (window.LRGROUP_ID || '') : '';
 
 function showScenesModal() {
   const sceneCount = lifxScenes.length;
@@ -137,7 +143,7 @@ function showScenesModal() {
   html += `</div>
     <div id='sceneFeedback' class="toast"></div>`;
   
-  showModal(html, { showBack: true });
+  window.showModal(html, { showBack: true });
 }
 
 // Enhanced Scene Application with Individual Bulb Control and WLED Gradient
@@ -186,20 +192,21 @@ window.applyLifxScene = async function(sceneName) {
       // Send commands to individual bulb
       const promises = [
         // Set color
-        fetch(`${MAKER_API_BASE}/devices/${bulb.deviceId}/setColor/${encodeURIComponent(JSON.stringify({hue: hue, saturation: saturation, level: bulb.brightness}))}?access_token=${ACCESS_TOKEN}`),
+        fetch(`${MAKER}/devices/${bulb.deviceId}/setColor/${encodeURIComponent(JSON.stringify({hue: hue, saturation: saturation, level: bulb.brightness}))}?access_token=${TOKEN}`),
         // Set brightness
-        fetch(`${MAKER_API_BASE}/devices/${bulb.deviceId}/setLevel/${bulb.brightness}?access_token=${ACCESS_TOKEN}`),
+        fetch(`${MAKER}/devices/${bulb.deviceId}/setLevel/${bulb.brightness}?access_token=${TOKEN}`),
         // Turn on
-        fetch(`${MAKER_API_BASE}/devices/${bulb.deviceId}/on?access_token=${ACCESS_TOKEN}`)
+        fetch(`${MAKER}/devices/${bulb.deviceId}/on?access_token=${TOKEN}`)
       ];
       
       return Promise.all(promises);
     });
     
-    // Apply to WLED device with gradient and Puddles effect
+    // Apply to WLED devices with gradient and Puddles effect
     const wledPromises = [
-      // Set custom gradient and apply Puddles effect (FX=89 is Puddles)
-      fetch(`http://${WLED_DEVICES.lrwall}/win&CL=${gradientString}&FX=89&A=${scene.wled.brightness}&SA=0&SB=300&SC=1&SE=1`)
+      // Set custom gradient and apply Puddles effect (FX=89 is Puddles) to both bedroom WLED devices
+      fetch(`http://${WLED_DEVICES.bedroom1}/win&CL=${gradientString}&FX=89&A=${scene.wled.brightness}&SA=0&SB=300&SC=1&SE=1`),
+      fetch(`http://${WLED_DEVICES.bedroom2}/win&CL=${gradientString}&FX=89&A=${scene.wled.brightness}&SA=0&SB=300&SC=1&SE=1`)
     ];
     
     // Wait for all promises to complete with 1-second duration for smooth transitions
@@ -240,7 +247,7 @@ function showWledEffectsModal() {
   
   html += `</div>`;
   
-  showModal(html, { showBack: true });
+  window.showModal(html, { showBack: true });
 }
 
 // WLED Palettes Modal
@@ -266,20 +273,23 @@ window.showWledPalettesModal = function() {
   html += `</div>
     <div id='wledFeedback' class="toast"></div>`;
   
-  showModal(html, { showBack: true });
+  window.showModal(html, { showBack: true });
 }
 
 window.applyWledPalette = function(id, name) {
-  // Apply to LRWall WLED device
-  fetch(`http://${WLED_DEVICES.lrwall}/win&FP=${id}`)
+  // Apply to both bedroom WLED devices
+  Promise.all([
+    fetch(`http://${WLED_DEVICES.bedroom1}/win&FP=${id}`),
+    fetch(`http://${WLED_DEVICES.bedroom2}/win&FP=${id}`)
+  ])
     .then(() => {
       const feedback = document.getElementById('wledFeedback');
       if (feedback) {
-        feedback.textContent = `Palette "${name}" applied!`;
+        feedback.textContent = `Palette "${name}" applied to both bedroom WLED devices!`;
         feedback.style.display = 'block';
         setTimeout(() => { feedback.style.display = 'none'; }, 1800);
       }
-      showToast(`WLED palette "${name}" applied!`, 'success');
+      showToast(`WLED palette "${name}" applied to both bedroom WLED devices!`, 'success');
     })
     .catch(err => {
       console.error('Failed to apply WLED palette:', err);
@@ -310,20 +320,23 @@ window.showWledFxModal = function() {
   html += `</div>
     <div id='wledFeedback' class="toast"></div>`;
   
-  showModal(html, { showBack: true });
+  window.showModal(html, { showBack: true });
 }
 
 window.applyWledEffect = function(id, name) {
-  // Apply to LRWall WLED device
-  fetch(`http://${WLED_DEVICES.lrwall}/win&FX=${id}`)
+  // Apply to both bedroom WLED devices
+  Promise.all([
+    fetch(`http://${WLED_DEVICES.bedroom1}/win&FX=${id}`),
+    fetch(`http://${WLED_DEVICES.bedroom2}/win&FX=${id}`)
+  ])
     .then(() => {
       const feedback = document.getElementById('wledFeedback');
       if (feedback) {
-        feedback.textContent = `Effect "${name}" applied!`;
+        feedback.textContent = `Effect "${name}" applied to both bedroom WLED devices!`;
         feedback.style.display = 'block';
         setTimeout(() => { feedback.style.display = 'none'; }, 1800);
       }
-      showToast(`WLED effect "${name}" applied!`, 'success');
+      showToast(`WLED effect "${name}" applied to both bedroom WLED devices!`, 'success');
     })
     .catch(err => {
       console.error('Failed to apply WLED effect:', err);
@@ -332,7 +345,7 @@ window.applyWledEffect = function(id, name) {
 }
 
 function bubbleChartBubbleClick(label, id) {
-  if (['452','449','446','470'].includes(id)) {
+  if (['447','450','449','451'].includes(id)) {
     openDeviceModal(label, id, true);
   } else if (id === 'scenes') {
     showScenesModal();
@@ -349,120 +362,305 @@ function bubbleChartBubbleClick(label, id) {
 // Global Controls Modal - Uses LRGroup
 function showGlobalControlsModal() {
   const buttons = [
-    { icon: '🔆', label: 'All On', onclick: "sendGlobalCommand('on')" },
-    { icon: '🌙', label: 'All Off', onclick: "sendGlobalCommand('off')" },
-    { icon: '🔅', label: 'Dim', onclick: "sendGlobalCommand('setLevel', 30)" },
-    { icon: '☀️', label: 'Bright', onclick: "sendGlobalCommand('setLevel', 100)" }
+    { icon: '🔆', label: 'All On',  onclick: "globalAllOn()",   cls: 'btn-all-on' },
+    { icon: '🌙', label: 'All Off', onclick: "globalAllOff()",  cls: 'btn-all-off' },
+    { icon: '🔅', label: 'Dim',     onclick: "globalDim()",     cls: 'btn-dim' },
+    { icon: '☀️', label: 'Bright',  onclick: "globalBright()",  cls: 'btn-bright' }
   ];
-  
-  let html = `<div class="modal-header">Global Controls</div>
-    <div class="bubble-ring count-${buttons.length}">`;
-  
+
+  let html = `<div class="bubble-ring global-ring-top" style="--radius: 180px;">`;
+
+  // ring buttons
+  const startDeg = -140, endDeg = -40;
+  const steps = buttons.length - 1 || 1;
   for (let i = 0; i < buttons.length; i++) {
-    html += `<button class="bubble-btn control-button i-${i}" onclick='${buttons[i].onclick}'>
+    const t = i / steps;
+    const deg = startDeg + t * (endDeg - startDeg);
+    html += `<button class="bubble-btn global-btn ${buttons[i].cls}" style="transform: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${buttons[i].onclick}">
       <span class="icon">${buttons[i].icon}</span>
       <span class="label">${buttons[i].label}</span>
     </button>`;
   }
+
+  // controls
+  html += `<div class="controls-group" style="display: flex; gap: 8px; justify-content: center;">`;
+
+  // HUE Slider (Kawaii style)
+  html += `
+    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+      <svg class="kawaii-slider" width="60" height="260">
+        <defs>
+          <linearGradient id="hueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ff0000" />
+            <stop offset="14%" stop-color="#ff8000" />
+            <stop offset="29%" stop-color="#ffff00" />
+            <stop offset="43%" stop-color="#80ff00" />
+            <stop offset="57%" stop-color="#00ff00" />
+            <stop offset="71%" stop-color="#00ff80" />
+            <stop offset="86%" stop-color="#00ffff" />
+            <stop offset="100%" stop-color="#ff0000" />
+          </linearGradient>
+        </defs>
+        <path id="bgHue" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path id="progressHue" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#hueGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+      </svg>
+      <div class="value" id="valHue" style="margin-top: 0.5rem; font-weight: bold; color: #ff0000;">0</div>
+      <div style="font-size: 12px; color: #666;">Hue</div>
+    </div>`;
+
+  // LEVEL Slider (Kawaii style)
+  html += `
+    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+      <svg class="kawaii-slider" width="60" height="260">
+        <defs>
+          <linearGradient id="lvlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="50%" stop-color="#777777" />
+            <stop offset="100%" stop-color="#000000" />
+          </linearGradient>
+        </defs>
+        <path id="bgLvl" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path id="progressLvl" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#lvlGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+      </svg>
+      <div class="value" id="valLvl" style="margin-top: 0.5rem; font-weight: bold; color: #333333;">0%</div>
+      <div style="font-size: 12px; color: #666;">Bright</div>
+    </div>`;
+
+  // SAT Slider (Kawaii style)
+  html += `
+    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+      <svg class="kawaii-slider" width="60" height="260">
+        <defs>
+          <linearGradient id="satGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ff0000" />
+            <stop offset="50%" stop-color="#ff8080" />
+            <stop offset="100%" stop-color="#ffffff" />
+          </linearGradient>
+        </defs>
+        <path id="bgSat" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path id="progressSat" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#satGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+      </svg>
+      <div class="value" id="valSat" style="margin-top: 0.5rem; font-weight: bold; color: #ff0000;">0</div>
+      <div style="font-size: 12px; color: #666;">Sat</div>
+    </div>`;
+
+  html += `</div></div>`;
+
+  window.showModal(html, true);
+
+  // Setup kawaii sliders
+  setTimeout(() => {
+    try {
+      setupKawaiiSlider('bgHue', 'progressHue', 'valHue', 'setHue');
+      setupKawaiiSlider('bgLvl', 'progressLvl', 'valLvl', 'setLevel');
+      setupKawaiiSlider('bgSat', 'progressSat', 'valSat', 'setSaturation');
+    } catch (error) {
+      console.error('Error setting up kawaii sliders:', error);
+    }
+  }, 100);
+
+  // fetch Bedroom Lights and render controls
+  const BEDROOM_LIGHTS_ID = '457'; // Bedroom Lights device ID
+  const API_BASE = 'http://192.168.4.44/apps/api/37';
+  const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af';
   
-  html += `</div>
-    <div id='globalFeedback' class="toast"></div>`;
+  fetch(`${API_BASE}/devices/${BEDROOM_LIGHTS_ID}?access_token=${ACCESS_TOKEN}`)
+    .then(res => res.json())
+    .then(device => renderGlobalControls(device))
+    .catch(() => { console.error('Failed to load Bedroom Lights state.'); });
+}
+
+
+// Expose for non-module callers
+window.showGlobalControlsModal = showGlobalControlsModal;
+
+// Wrapper helpers for inline buttons
+window.globalAllOn = () => window.sendGlobalCommand('on');
+window.globalAllOff = () => window.sendGlobalCommand('off');
+window.globalDim = () => window.sendGlobalCommand('setLevel', 30);
+window.globalBright = () => window.sendGlobalCommand('setLevel', 100);
+
+// --- Wire kawaii slider interactions ---
+const setupKawaiiSlider = (bgId, progressId, valueId, command) => {
+  const bgPath = document.getElementById(bgId);
+  const prog = document.getElementById(progressId);
+  const valBox = document.getElementById(valueId);
   
-  showModal(html, { showBack: true });
+  if (!bgPath || !prog || !valBox) {
+    console.error(`Missing slider elements: ${bgId}, ${progressId}, ${valueId}`);
+    return;
+  }
+  
+  const length = bgPath.getTotalLength();
+  prog.setAttribute("stroke-dasharray", length);
+  prog.setAttribute("stroke-dashoffset", length);
+  
+  let dragging = false;
+  let currentValue = 0;
+  
+  function move(e) {
+    const rect = bgPath.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    let t = 1 - (y / rect.height);
+    t = Math.max(0, Math.min(1, t));
+    
+    // Update visual progress
+    prog.setAttribute("stroke-dashoffset", (1 - t) * length);
+    
+    // Calculate value based on slider type
+    let value;
+    if (valueId === 'valLvl') {
+      // Level: 1-100%
+      value = Math.max(1, Math.round(t * 100));
+      valBox.textContent = `${value}%`;
+    } else {
+      // Hue and Saturation: 0-100
+      value = Math.round(t * 100);
+      valBox.textContent = value;
+    }
+    
+    currentValue = value;
+  }
+  
+  function startDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging = true;
+    move(e);
+    window.addEventListener("mousemove", move);
+  }
+  
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    window.removeEventListener("mousemove", move);
+    
+    // Send command to Bedroom Lights device (ID: 457)
+    sendBedroomLightsCommand(command, currentValue);
+  }
+  
+  // Mouse events
+  bgPath.addEventListener("mousedown", startDrag);
+  prog.addEventListener("mousedown", startDrag);
+  window.addEventListener("mouseup", endDrag);
+  
+  // Touch events
+  bgPath.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
+  });
+  
+  prog.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
+  });
+  
+  window.addEventListener("touchmove", (e) => {
+    if (dragging && e.touches[0]) {
+      move({ clientY: e.touches[0].clientY });
+    }
+  });
+  
+  window.addEventListener("touchend", endDrag);
+  
+  // Click events for immediate response
+  bgPath.addEventListener("click", (e) => {
+    if (!dragging) {
+      move(e);
+      sendBedroomLightsCommand(command, currentValue);
+    }
+  });
+  
+  prog.addEventListener("click", (e) => {
+    if (!dragging) {
+      move(e);
+      sendBedroomLightsCommand(command, currentValue);
+    }
+  });
+};
+
+// Send command to Bedroom Lights device (ID: 457) using Hubitat API
+function sendBedroomLightsCommand(command, value) {
+  const BEDROOM_LIGHTS_ID = '457'; // Bedroom Lights device ID from devicesfulldetails.json
+  const API_BASE = 'http://192.168.4.44/apps/api/37'; // From localUrls.md
+  const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af'; // From localUrls.md
+  
+  let url = `${API_BASE}/devices/${BEDROOM_LIGHTS_ID}/${command}`;
+  if (value !== undefined) {
+    url += `/${value}`;
+  }
+  url += `?access_token=${ACCESS_TOKEN}`;
+  
+  fetch(url)
+    .then(res => res.text())
+    .then(() => {
+      console.log(`Bedroom Lights command sent: ${command}${value ? ` = ${value}` : ''}`);
+      showToast(`Bedroom Lights ${command} ${value ? value : 'command'} sent!`, 'success');
+    })
+    .catch(err => {
+      console.error('Failed to send Bedroom Lights command:', err);
+      showToast(`Failed to control Bedroom Lights: ${err.message}`, 'error');
+    });
 }
 
 function renderGlobalControls(device) {
   const attr = device.attributes || {};
   const isOn = attr.switch === 'on';
-  const level = attr.level || 0;
-  const hue = attr.hue || 0;
-  const sat = attr.saturation || 0;
+  const level = Number(attr.level || 0);
+  const hue = Number(attr.hue || 0);
+  const sat = Number(attr.saturation || 0);
   
-  let html = '';
+  console.log('Bedroom Lights state:', { isOn, level, hue, sat });
   
-  html += `<div class="global-controls-section">
-    <div class="global-power-toggle">
-      <button class="btn ${isOn ? 'btn-success' : 'btn-danger'}" onclick="sendGlobalCommand('${isOn ? 'off' : 'on'}')">
-        <span class="icon">${isOn ? '🔆' : '🌙'}</span>
-        <span class="label">${isOn ? 'On' : 'Off'}</span>
-      </button>
-    </div>
-  </div>`;
+  // Update kawaii slider values and visual progress
+  const valLvl = document.getElementById('valLvl');
+  const valHue = document.getElementById('valHue');
+  const valSat = document.getElementById('valSat');
   
-  html += `<div class="modal-sliders">`;
+  const bgLvl = document.getElementById('bgLvl');
+  const bgHue = document.getElementById('bgHue');
+  const bgSat = document.getElementById('bgSat');
   
-  html += `<div class="slider-container">
-    <label>Brightness:</label>
-    <input type="range" id="globalLevelSlider" min="1" max="100" value="${level}" class="slider-input">
-    <span id="globalLevelVal" class="slider-value">${level}%</span>
-  </div>`;
+  const progressLvl = document.getElementById('progressLvl');
+  const progressHue = document.getElementById('progressHue');
+  const progressSat = document.getElementById('progressSat');
   
-  html += `<div class="slider-container">
-    <label>Hue:</label>
-    <input type="range" id="globalHueSlider" min="0" max="100" value="${hue}" class="slider-input">
-    <span id="globalHueVal" class="slider-value">${hue}</span>
-  </div>`;
+  // Update text values
+  if (valLvl) valLvl.textContent = `${Math.max(1, level)}%`;
+  if (valHue) valHue.textContent = `${hue}`;
+  if (valSat) valSat.textContent = `${sat}`;
   
-  html += `<div class="slider-container">
-    <label>Saturation:</label>
-    <input type="range" id="globalSatSlider" min="0" max="100" value="${sat}" class="slider-input">
-    <span id="globalSatVal" class="slider-value">${sat}</span>
-  </div>`;
+  // Update visual progress for kawaii sliders
+  if (bgLvl && progressLvl) {
+    const length = bgLvl.getTotalLength();
+    const progress = level / 100; // 0 to 1
+    progressLvl.setAttribute('stroke-dasharray', length);
+    progressLvl.setAttribute('stroke-dashoffset', (1 - progress) * length);
+  }
   
-  html += `</div>`;
+  if (bgHue && progressHue) {
+    const length = bgHue.getTotalLength();
+    const progress = hue / 100; // 0 to 1
+    progressHue.setAttribute('stroke-dasharray', length);
+    progressHue.setAttribute('stroke-dashoffset', (1 - progress) * length);
+  }
   
-  html += `<div class="global-refresh-button">
-    <button id='globalRefreshBtn' class='btn btn-primary'>
-      <span class="icon">🔄</span>
-      <span class="label">Refresh</span>
-    </button>
-  </div>`;
-  
-  document.getElementById('globalControls').innerHTML = html;
-  
-  // Event listeners
-  document.getElementById('globalLevelSlider').oninput = function() {
-    document.getElementById('globalLevelVal').textContent = this.value + '%';
-  };
-  document.getElementById('globalLevelSlider').onchange = function() {
-    sendGlobalCommand('setLevel', this.value);
-  };
-  
-  document.getElementById('globalHueSlider').oninput = function() {
-    document.getElementById('globalHueVal').textContent = this.value;
-  };
-  document.getElementById('globalHueSlider').onchange = function() {
-    sendGlobalCommand('setHue', this.value);
-  };
-  
-  document.getElementById('globalSatSlider').oninput = function() {
-    document.getElementById('globalSatVal').textContent = this.value;
-  };
-  document.getElementById('globalSatSlider').onchange = function() {
-    sendGlobalCommand('setSaturation', this.value);
-  };
-  
-  document.getElementById('globalRefreshBtn').onclick = function() {
-    document.getElementById('globalControls').innerHTML = '<em>Refreshing...</em>';
-    fetch(`${MAKER_API_BASE}/devices/${LRGROUP_ID}?access_token=${ACCESS_TOKEN}`)
-      .then(res => res.json())
-      .then(device => {
-        renderGlobalControls(device);
-      })
-      .catch(err => {
-        document.getElementById('globalControls').innerHTML = `<div class="error-message">Failed to refresh global state.</div>`;
-      });
-  };
+  if (bgSat && progressSat) {
+    const length = bgSat.getTotalLength();
+    const progress = sat / 100; // 0 to 1
+    progressSat.setAttribute('stroke-dasharray', length);
+    progressSat.setAttribute('stroke-dashoffset', (1 - progress) * length);
+  }
 }
 
 window.sendGlobalCommand = function(command, value) {
-  let url = `${MAKER_API_BASE}/devices/${LRGROUP_ID}/${command}`;
+  let url = `${window.MAKER_API_BASE}/devices/${window.LRGROUP_ID}/${command}`;
   if (value !== undefined) url += `/${value}`;
-  url += `?access_token=${ACCESS_TOKEN}`;
+  url += `?access_token=${window.ACCESS_TOKEN}`;
   
   fetch(url)
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.text())
+    .then(() => {
       const feedback = document.getElementById('globalFeedback');
       if (feedback) {
         feedback.textContent = `Global command "${command}" sent!`;
@@ -476,6 +674,18 @@ window.sendGlobalCommand = function(command, value) {
       showToast(`Failed to send command: ${err.message}`, 'error');
     });
 }
+
+// Make power toggle wrapper stable for inline handler
+window.globalPowerToggle = function() {
+  // Fetch current, then invert
+  fetch(`${window.MAKER_API_BASE}/devices/${window.LRGROUP_ID}?access_token=${window.ACCESS_TOKEN}`)
+    .then(r => r.json())
+    .then(dev => {
+      const isOn = (Array.isArray(dev.attributes) ? (dev.attributes.find(a => a.name === 'switch')?.currentValue) : dev.attributes?.switch) === 'on';
+      return window.sendGlobalCommand(isOn ? 'off' : 'on');
+    })
+    .catch(() => window.sendGlobalCommand('on'));
+};
 
 // Scene Manager for handling scene-related functionality
 const sceneManager = {
@@ -501,4 +711,6 @@ const sceneManager = {
 };
 
 // Export for use in other modules
-export { sceneManager }; 
+
+// Also expose on window for non-module callers
+window.sceneManager = sceneManager; 

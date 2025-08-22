@@ -1,26 +1,48 @@
+// Global state to track pending commands for device modals
+if (!window.devicePendingCommands) {
+  window.devicePendingCommands = new Map();
+}
+
 function openDeviceModal(label, deviceId, showBack = false) {
   if (!livingRoomDevices[deviceId]) {
     showModalContent(`<div class="modal-header">${label}</div>
-      <div style="text-align: center; color: #ccc; margin-top: 20px;">Controls for <b>${label}</b> (ID: ${deviceId}) coming soon...</div>`, showBack, '.side-btn[title="Lights"]');
+      <div class="device-coming-soon">Controls for <b>${label}</b> (ID: ${deviceId}) coming soon...</div>`, showBack, '.side-btn[title="Lights"]');
     return;
   }
   
   showModalContent(`<div class="modal-header">${label}</div>
-    <div id='deviceControls' style="text-align: center; color: #ccc; margin-top: 20px;"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
+    <div id='deviceControls' class="device-loading-message"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
   
-  fetch(`${MAKER_API_BASE}/devices/${deviceId}?access_token=${ACCESS_TOKEN}`)
+  fetch(`${window.MAKER_API_BASE}/devices/${deviceId}?access_token=${window.ACCESS_TOKEN}`)
     .then(res => res.json())
     .then(device => {
       renderDeviceControls(device, deviceId, showBack);
     })
     .catch(err => {
-      document.getElementById('deviceControls').innerHTML = `<span style='color:red'>Failed to load device state.</span>`;
+      document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to load device state.</span></div>`;
     });
 }
 
 function renderDeviceControls(device, deviceId, showBack = false) {
   const dev = livingRoomDevices[deviceId];
+  
+  if (!device || !device.attributes) {
+    console.error('Invalid device data:', device);
+    document.getElementById('deviceControls').innerHTML = `
+      <div class="device-error-container">
+        <div class="device-error-title">❌ Invalid device data</div>
+        <div class="device-error-details">Device ID: ${deviceId}</div>
+        <div class="device-error-details">Device: ${device ? JSON.stringify(device) : 'null'}</div>
+      </div>`;
+    return;
+  }
+  
   const attr = device.attributes || {};
+  
+  // Debug logging to see what we're getting
+  console.log('Device data:', device);
+  console.log('Device attributes:', attr);
+  console.log('Device capabilities:', device.capabilities);
   
   // Helper to get attribute value
   function getAttr(name) {
@@ -32,6 +54,21 @@ function renderDeviceControls(device, deviceId, showBack = false) {
     }
   }
   
+  // Helper to check if device has a capability (handles mixed string/object array)
+  function hasCapability(capabilityName) {
+    if (!device.capabilities || !Array.isArray(device.capabilities)) {
+      return false;
+    }
+    return device.capabilities.some(cap => {
+      if (typeof cap === 'string') {
+        return cap === capabilityName;
+      } else if (cap && typeof cap === 'object') {
+        return cap.attributes && cap.attributes.some(attr => attr.name === capabilityName);
+      }
+      return false;
+    });
+  }
+  
   const isOn = getAttr('switch') === 'on';
   const level = getAttr('level') || 0;
   const colorTemp = getAttr('colorTemperature') || 3000;
@@ -39,6 +76,9 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   const sat = getAttr('saturation') || 0;
   const color = getAttr('color') || '#FFFFFF';
   const colorMode = getAttr('colorMode') || 'CT';
+  
+  // Debug logging for parsed values
+  console.log('Parsed values:', { isOn, level, colorTemp, hue, sat, color, colorMode });
   
   // Convert Hubitat color values to CSS color
   function getCurrentColor() {
@@ -81,55 +121,107 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   const currentColor = getCurrentColor();
   let html = '';
   
-  // Top section with power toggle and basic controls
-  html += `<div style="margin-bottom: 20px;">
-    <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 16px;">
-      <button class="circular-button control-button" onclick="sendDeviceCommand('${deviceId}', '${isOn ? 'off' : 'on'}')" style="background: ${isOn ? 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)' : 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)'};">
+  // Top section with power toggle and color preview
+  html += `<div class="device-modal-container">
+    <div class="device-power-section">
+      <button class="circular-button control-button ${isOn ? 'device-power-button-on' : 'device-power-button-off'}" onclick="sendDeviceCommand('${deviceId}', '${isOn ? 'off' : 'on'}')">
         <div class="icon">${isOn ? '🔆' : '🌙'}</div>
         <div class="label">${isOn ? 'On' : 'Off'}</div>
       </button>
-      <div style="width: 60px; height: 60px; border-radius: 50%; background: ${currentColor}; border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
+      <div class="device-color-preview" style="background: ${currentColor};"></div>
     </div>
   </div>`;
   
-  // Sliders section at bottom
-  html += `<div class="modal-sliders">`;
+  // Curved sliders section - matching global controls style
+  html += `<div class="device-controls-group">`;
   
-  // Brightness slider
-  html += `<div class="slider-container">
-    <label>Brightness:</label>
-    <input type="range" id="levelSlider" min="1" max="100" value="${level}" style="flex:1;">
-    <span id="levelVal" class="slider-value">${level}%</span>
-  </div>`;
-  
-  // Color Temperature slider
-  if (dev.capabilities.includes('ColorTemperature')) {
-    html += `<div class="slider-container">
-      <label>Color Temp:</label>
-      <input type="range" id="ctSlider" min="2000" max="9000" value="${colorTemp}" style="flex:1;">
-      <span id="ctVal" class="slider-value">${colorTemp}K</span>
+  // Brightness slider (Kawaii style)
+  html += `
+    <div class="device-slider-wrapper">
+      <svg class="kawaii-slider" width="60" height="260">
+        <defs>
+          <linearGradient id="lvlGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="50%" stop-color="#777777" />
+            <stop offset="100%" stop-color="#000000" />
+          </linearGradient>
+        </defs>
+        <path id="bgLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path id="progressLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#lvlGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+      </svg>
+      <div class="device-slider-value" id="valLvl-${deviceId}">${level}%</div>
+      <div class="device-slider-label">Bright</div>
     </div>`;
+  
+  // Color Temperature slider (if supported)
+  if (hasCapability('ColorTemperature')) {
+    html += `
+      <div class="device-slider-wrapper">
+        <svg class="kawaii-slider" width="60" height="260">
+          <defs>
+            <linearGradient id="ctGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ff8a65" />
+              <stop offset="50%" stop-color="#ffd600" />
+              <stop offset="100%" stop-color="#3aa3ff" />
+            </linearGradient>
+          </defs>
+          <path id="bgCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+          <path id="progressCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#ctGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+        </svg>
+        <div class="device-slider-value" id="valCt-${deviceId}" style="color: #ff8a65;">${colorTemp}K</div>
+        <div class="device-slider-label">Temp</div>
+      </div>`;
   }
   
-  // Color controls
-  if (dev.capabilities.includes('ColorControl')) {
-    html += `<div class="slider-container">
-      <label>Hue:</label>
-      <input type="range" id="hueSlider" min="0" max="100" value="${hue}" style="flex:1;">
-      <span id="hueVal" class="slider-value">${hue}</span>
-    </div>`;
-    html += `<div class="slider-container">
-      <label>Saturation:</label>
-      <input type="range" id="satSlider" min="0" max="100" value="${sat}" style="flex:1;">
-      <span id="satVal" class="slider-value">${sat}</span>
-    </div>`;
+  // Color controls (if supported)
+  if (hasCapability('ColorControl')) {
+    // HUE Slider (Kawaii style)
+    html += `
+      <div class="device-slider-wrapper">
+        <svg class="kawaii-slider" width="60" height="260">
+          <defs>
+            <linearGradient id="hueGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ff0000" />
+              <stop offset="14%" stop-color="#ff8000" />
+              <stop offset="29%" stop-color="#ffff00" />
+              <stop offset="43%" stop-color="#80ff00" />
+              <stop offset="57%" stop-color="#00ff00" />
+              <stop offset="71%" stop-color="#00ff80" />
+              <stop offset="86%" stop-color="#00ffff" />
+              <stop offset="100%" stop-color="#ff0000" />
+            </linearGradient>
+          </defs>
+          <path id="bgHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+          <path id="progressHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#hueGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+        </svg>
+        <div class="device-slider-value" id="valHue-${deviceId}" style="color: #ff0000;">${hue}</div>
+        <div class="device-slider-label">Hue</div>
+      </div>`;
+    
+    // SAT Slider (Kawaii style)
+    html += `
+      <div class="device-slider-wrapper">
+        <svg class="kawaii-slider" width="60" height="260">
+          <defs>
+            <linearGradient id="satGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ff0000" />
+              <stop offset="50%" stop-color="#ff8080" />
+              <stop offset="100%" stop-color="#ffffff" />
+            </linearGradient>
+          </defs>
+          <path id="bgSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
+          <path id="progressSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#satGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
+        </svg>
+        <div class="device-slider-value" id="valSat-${deviceId}" style="color: #ff0000;">${sat}</div>
+        <div class="device-slider-label">Sat</div>
+      </div>`;
   }
   
   html += `</div>`;
   
   // Refresh button
-  html += `<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
-    <button id='refreshBtn' class='circular-button control-button' style="width: 60px; height: 60px;">
+  html += `<div class="device-refresh-section">
+    <button id='refreshBtn' class='circular-button control-button device-refresh-button'>
       <div class="icon">🔄</div>
       <div class="label">Refresh</div>
     </button>
@@ -138,58 +230,181 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   document.getElementById('deviceControls').innerHTML = html;
   document.getElementById('backModal').style.display = showBack ? '' : 'none';
   
-  // Event listeners
-  document.getElementById('levelSlider').oninput = function() {
-    document.getElementById('levelVal').textContent = this.value + '%';
-  };
-  document.getElementById('levelSlider').onchange = function() {
-    sendDeviceCommand(deviceId, 'setLevel', this.value);
-  };
+  // Setup kawaii sliders for this device
+  setTimeout(() => {
+    try {
+      setupKawaiiSlider(`bgLvl-${deviceId}`, `progressLvl-${deviceId}`, `valLvl-${deviceId}`, 'setLevel', deviceId);
+      
+      if (hasCapability('ColorTemperature')) {
+        setupKawaiiSlider(`bgCt-${deviceId}`, `progressCt-${deviceId}`, `valCt-${deviceId}`, 'setColorTemperature', deviceId);
+      }
+      
+      if (hasCapability('ColorControl')) {
+        setupKawaiiSlider(`bgHue-${deviceId}`, `progressHue-${deviceId}`, `valHue-${deviceId}`, 'setHue', deviceId);
+        setupKawaiiSlider(`bgSat-${deviceId}`, `progressSat-${deviceId}`, `valSat-${deviceId}`, 'setSaturation', deviceId);
+      }
+    } catch (error) {
+      console.error('Error setting up kawaii sliders for device:', deviceId, error);
+    }
+  }, 100);
   
-  if (document.getElementById('ctSlider')) {
-    document.getElementById('ctSlider').oninput = function() {
-      document.getElementById('ctVal').textContent = this.value + 'K';
-    };
-    document.getElementById('ctSlider').onchange = function() {
-      sendDeviceCommand(deviceId, 'setColorTemperature', this.value);
-    };
-  }
-  
-  if (document.getElementById('hueSlider')) {
-    document.getElementById('hueSlider').oninput = function() {
-      document.getElementById('hueVal').textContent = this.value;
-    };
-    document.getElementById('hueSlider').onchange = function() {
-      sendDeviceCommand(deviceId, 'setHue', this.value);
-    };
-  }
-  
-  if (document.getElementById('satSlider')) {
-    document.getElementById('satSlider').oninput = function() {
-      document.getElementById('satVal').textContent = this.value;
-    };
-    document.getElementById('satSlider').onchange = function() {
-      sendDeviceCommand(deviceId, 'setSaturation', this.value);
-    };
-  }
-  
+  // Event listeners for the refresh button
   document.getElementById('refreshBtn').onclick = function() {
-    document.getElementById('deviceControls').innerHTML = '<em>Refreshing...</em>';
-    fetch(`${MAKER_API_BASE}/devices/${deviceId}?access_token=${ACCESS_TOKEN}`)
+    document.getElementById('deviceControls').innerHTML = '<div class="device-loading-message"><em>Refreshing...</em></div>';
+    fetch(`${window.MAKER_API_BASE}/devices/${deviceId}?access_token=${window.ACCESS_TOKEN}`)
       .then(res => res.json())
       .then(device => {
         renderDeviceControls(device, deviceId, showBack);
       })
       .catch(err => {
-        document.getElementById('deviceControls').innerHTML = `<span style='color:red'>Failed to refresh device state.</span>`;
+        document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to refresh device state.</span></div>`;
       });
   };
 }
 
+// Helper function to setup kawaii sliders for device controls
+function setupKawaiiSlider(bgId, progressId, valueId, command, deviceId) {
+  const bg = document.getElementById(bgId);
+  const progress = document.getElementById(progressId);
+  const value = document.getElementById(valueId);
+  
+  if (!bg || !progress || !value) {
+    console.error(`Missing slider elements: ${bgId}, ${progressId}, ${valueId}`);
+    return;
+  }
+  
+  const pathLength = bg.getTotalLength();
+  progress.style.strokeDasharray = pathLength;
+  
+  // Set initial value based on current value
+  let currentValue = 0;
+  if (command === 'setLevel') {
+    currentValue = parseInt(value.textContent) || 0;
+  } else if (command === 'setColorTemperature') {
+    currentValue = parseInt(value.textContent) || 3000;
+  } else if (command === 'setHue') {
+    currentValue = parseInt(value.textContent) || 0;
+  } else if (command === 'setSaturation') {
+    currentValue = parseInt(value.textContent) || 0;
+  }
+  
+  // Update progress bar
+  updateProgressBar(progress, pathLength, currentValue, command);
+  
+  let dragging = false;
+  
+  function move(e) {
+    const rect = bg.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const value = getValueFromY(y, rect.height, command);
+    updateSliderValue(value, command, deviceId);
+  }
+  
+  function startDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging = true;
+    move(e);
+    window.addEventListener("mousemove", move);
+  }
+  
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    window.removeEventListener("mousemove", move);
+  }
+  
+  // Mouse events
+  bg.addEventListener("mousedown", startDrag);
+  progress.addEventListener("mousedown", startDrag);
+  window.addEventListener("mouseup", endDrag);
+  
+  // Touch events
+  bg.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
+  });
+  
+  progress.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
+  });
+  
+  window.addEventListener("touchmove", (e) => {
+    if (dragging && e.touches[0]) {
+      move({ clientY: e.touches[0].clientY });
+    }
+  });
+  
+  window.addEventListener("touchend", endDrag);
+  
+  // Click events for immediate response
+  bg.addEventListener("click", (e) => {
+    if (!dragging) {
+      move(e);
+    }
+  });
+  
+  progress.addEventListener("click", (e) => {
+    if (!dragging) {
+      move(e);
+    }
+  });
+  
+  function getValueFromY(y, height, command) {
+    const normalizedY = Math.max(0, Math.min(1, 1 - (y / height)));
+    
+    if (command === 'setLevel') {
+      return Math.max(1, Math.round(normalizedY * 100));
+    } else if (command === 'setColorTemperature') {
+      return Math.round(2000 + normalizedY * 7000);
+    } else if (command === 'setHue') {
+      return Math.round(normalizedY * 100);
+    } else if (command === 'setSaturation') {
+      return Math.round(normalizedY * 100);
+    }
+    return 0;
+  }
+  
+  function updateSliderValue(newValue, command, deviceId) {
+    currentValue = newValue;
+    
+    // Update display
+    if (command === 'setLevel') {
+      value.textContent = newValue + '%';
+    } else if (command === 'setColorTemperature') {
+      value.textContent = newValue + 'K';
+    } else {
+      value.textContent = newValue;
+    }
+    
+    // Update progress bar
+    updateProgressBar(progress, pathLength, newValue, command);
+    
+    // Send command to device
+    sendDeviceCommand(deviceId, command, newValue);
+  }
+  
+  function updateProgressBar(progress, pathLength, value, command) {
+    let normalizedValue = 0;
+    
+    if (command === 'setLevel') {
+      normalizedValue = value / 100;
+    } else if (command === 'setColorTemperature') {
+      normalizedValue = (value - 2000) / 7000;
+    } else if (command === 'setHue' || command === 'setSaturation') {
+      normalizedValue = value / 100;
+    }
+    
+    const dashOffset = pathLength * (1 - normalizedValue);
+    progress.style.strokeDashoffset = dashOffset;
+  }
+}
+
 function sendDeviceCommand(deviceId, command, value) {
-  let url = `${MAKER_API_BASE}/devices/${deviceId}/${command}`;
+  let url = `${window.MAKER_API_BASE}/devices/${deviceId}/${command}`;
   if (value !== undefined) url += `/${value}`;
-  url += `?access_token=${ACCESS_TOKEN}`;
+  url += `?access_token=${window.ACCESS_TOKEN}`;
   
   fetch(url)
     .then(res => res.json())
