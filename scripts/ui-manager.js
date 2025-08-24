@@ -259,61 +259,74 @@ class UIManager {
   renderDeviceControls(device, deviceId, showBack) {
     const capabilities = this.getDeviceCapabilities(deviceId);
     if (!capabilities) {
-      document.getElementById('deviceControls').innerHTML = 
-        `<div class="error-message">Unknown device type</div>`;
+      document.getElementById('deviceControls').innerHTML = `<div class="error-message">Unknown device type</div>`;
       return;
     }
 
     // Normalize attributes
     const attrs = device.attributes || {};
-    const normalizedAttrs = window.deviceStateManager ? 
-      window.deviceStateManager.normalizeAttributes(attrs) : attrs;
+    const a = window.deviceStateManager ? window.deviceStateManager.normalizeAttributes(attrs) : attrs;
+    const isOn = a.switch === 'on';
+    const level = parseInt(a.level || 0);
+    const hue   = parseInt(a.hue   || 0);
+    const sat   = parseInt(a.saturation || 0);
+    const ct    = parseInt(a.colorTemperature || 3000);
 
-    let html = '<div class="control-rows">';
-    
-    const isOn = normalizedAttrs.switch === 'on';
-    html += `<div class="control-row">
-      <div class="label">Power</div>
-      <button onclick="uiManager.sendDeviceCommand('${deviceId}', '${isOn ? 'off' : 'on'}')" 
-              class="btn ${isOn ? 'btn-success' : 'btn-danger'}">
-        ${isOn ? 'Turn Off' : 'Turn On'}
-      </button>
+    // Ring buttons identical to global controls but wired to this device
+    const ring = [
+      {icon:'🔆',lbl:'On',     cls:'btn-all-on',  cmd:`uiManager.sendDeviceCommand('${deviceId}','on')`},
+      {icon:'🌙',lbl:'Off',    cls:'btn-all-off', cmd:`uiManager.sendDeviceCommand('${deviceId}','off')`},
+      {icon:'🔅',lbl:'Dim',    cls:'btn-dim',     cmd:`uiManager.sendDeviceCommand('${deviceId}','setLevel',20)`},
+      {icon:'☀️',lbl:'Bright', cls:'btn-bright',  cmd:`uiManager.sendDeviceCommand('${deviceId}','setLevel',90)`}
+    ];
+    const start=-140,end=-40,steps=ring.length-1||1;
+    let html = `<div class="bubble-ring global-ring-top" style="--radius:180px;">`;
+    ring.forEach((b,i)=>{
+      const deg=start+(i/steps)*(end-start);
+      html+=`<button class="bubble-btn global-btn ${b.cls}" style="transform:translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1*var(--radius))) rotate(${-deg}deg);" onclick=\"${b.cmd}\"><span class='icon'>${b.icon}</span><span class='label'>${b.lbl}</span></button>`;
+    });
+    html+='</div><div class="controls-group">';
+
+    // Brightness kawaii slider
+    html+=this._sliderHTML(deviceId,'Lvl','#ffffff,#777777,#000000',level+'%',level,'Bright');
+    if(capabilities.includes('ColorTemperature')) html+=this._sliderHTML(deviceId,'Ct','#ff8a65,#ffd600,#3aa3ff',ct+'K',ct,'Temp');
+    if(capabilities.includes('ColorControl')) {
+      html+=this._sliderHTML(deviceId,'Hue','#ff0000,#ff8000,#ffff00,#80ff00,#00ff00,#00ff80,#00ffff,#ff0000',hue,hue,'Hue');
+      html+=this._sliderHTML(deviceId,'Sat','#ff0000,#ff8080,#ffffff',sat,sat,'Sat');
+    }
+    html+='</div>';
+
+    document.getElementById('deviceControls').innerHTML=html;
+
+    // init sliders
+    setTimeout(()=>{
+      window.setupKawaiiSlider && window.setupKawaiiSlider(`bgLvl-${deviceId}`,`progressLvl-${deviceId}`,`valLvl-${deviceId}`,'setLevel',deviceId);
+      if(capabilities.includes('ColorTemperature')) window.setupKawaiiSlider(`bgCt-${deviceId}`,`progressCt-${deviceId}`,`valCt-${deviceId}`,'setColorTemperature',deviceId);
+      if(capabilities.includes('ColorControl')) {
+        window.setupKawaiiSlider(`bgHue-${deviceId}`,`progressHue-${deviceId}`,`valHue-${deviceId}`,'setHue',deviceId);
+        window.setupKawaiiSlider(`bgSat-${deviceId}`,`progressSat-${deviceId}`,`valSat-${deviceId}`,'setSaturation',deviceId);
+      }
+    },50);
+  }
+
+  _sliderHTML(id,suffix,grad,valText,valRaw,label){
+    const gradId=`${suffix.toLowerCase()}Gradient-${id}`;
+    const bgId=`bg${suffix}-${id}`;
+    const progId=`progress${suffix}-${id}`;
+    const valId=`val${suffix}-${id}`;
+    const stops=grad.split(',');
+    let defs='<linearGradient id="'+gradId+'" x1="0%" y1="0%" x2="0%" y2="100%">';
+    const step=100/(stops.length-1);
+    stops.forEach((c,i)=>{defs+=`<stop offset="${i*step}%" stop-color="${c.trim()}" />`;});
+    defs+='</linearGradient>';
+    return `<div class='slider-wrapper'>
+      <svg class='kawaii-slider' width='60' height='260'>${defs}
+        <path id='${bgId}' d='M20 230 C 50 200, 50 60, 20 30' stroke='#e4e4e4' stroke-width='30' fill='none' stroke-linecap='round'/>
+        <path id='${progId}' d='M20 230 C 50 200, 50 60, 20 30' stroke='url(#${gradId})' stroke-width='30' fill='none' stroke-linecap='round' stroke-dasharray='1' stroke-dashoffset='1'/>
+      </svg>
+      <div class='value' id='${valId}'>${valText}</div>
+      <div style='font-size:12px;'>${label}</div>
     </div>`;
-
-    if (capabilities.includes('SwitchLevel')) {
-      const level = parseInt(normalizedAttrs.level) || 0;
-      html += `<div class="control-row">
-        <label for="level-slider" class="label">Brightness</label>
-        <input type="range" id="level-slider" min="1" max="100" value="${level}" 
-               onchange="uiManager.sendDeviceCommand('${deviceId}', 'setLevel', this.value)"
-               class="slider-input">
-        <div class="value">${level}%</div>
-      </div>`;
-    }
-
-    if (capabilities.includes('ColorControl')) {
-      const hue = parseInt(normalizedAttrs.hue) || 0;
-      const saturation = parseInt(normalizedAttrs.saturation) || 0;
-      
-      html += `<div class="control-row">
-        <label for="hue-slider" class="label">Hue</label>
-        <input type="range" id="hue-slider" min="0" max="100" value="${hue}" 
-               onchange="uiManager.sendDeviceCommand('${deviceId}', 'setHue', this.value)"
-               class="slider-input">
-        <div class="value">${hue}</div>
-      </div>`;
-      
-      html += `<div class="control-row">
-        <label for="saturation-slider" class="label">Saturation</label>
-        <input type="range" id="saturation-slider" min="0" max="100" value="${saturation}" 
-               onchange="uiManager.sendDeviceCommand('${deviceId}', 'setSaturation', this.value)"
-               class="slider-input">
-        <div class="value">${saturation}</div>
-      </div>`;
-    }
-    html += '</div>';
-
-    document.getElementById('deviceControls').innerHTML = html;
   }
 
   getDeviceCapabilities(deviceId) {
@@ -375,8 +388,13 @@ class UIManager {
 
     this.showModal(html, { triggerSelector: '.side-btn[title="Thermostat"]' });
 
-    // Load state
-    window.apiService.getDeviceStatus(deviceId).then(dev => this.renderThermostat(dev)).catch(()=>{});
+    // Load state via state manager to avoid loops and ensure a single source of truth
+    if (window.deviceStateManager) {
+      this.refreshAndRenderThermostat(deviceId).catch(()=>{});
+    } else {
+      // Fallback to API if state manager is not available
+      window.apiService.getDeviceStatus(deviceId).then(dev => this.renderThermostat(dev)).catch(()=>{});
+    }
 
     // Wire buttons
     const modeBtn = document.getElementById('thermoModeBtn');
@@ -446,6 +464,42 @@ class UIManager {
     this._thermoMode = mode;
     this._thermoHeat = heat;
     this._thermoCool = cool;
+  }
+
+  // Map raw fan mode to display label
+  _fanDisplay(mode) {
+    if (!mode) return '--';
+    const m = mode.toString().toLowerCase();
+    if (m === 'auto') return 'AUTO';
+    if (m === 'on') return 'ON';
+    if (m === 'circulate') return 'CIRC';
+    return m.toUpperCase();
+  }
+
+  // Returns true if the thermostat modal is currently visible
+  isThermostatModalVisible() {
+    const modalBg = document.getElementById('modalBg');
+    const root = document.getElementById('thermoRoot');
+    return !!(modalBg && modalBg.classList.contains('visible') && root);
+  }
+
+  // Build a Hubitat-like device object from normalized state for rendering
+  _getThermostatDeviceFromState(deviceId = '86') {
+    const attrs = (window.deviceStateManager && window.deviceStateManager.getDevice(deviceId)) || {};
+    return { attributes: attrs };
+  }
+
+  // Refresh thermostat from Hubitat into state manager, then render from state
+  async refreshAndRenderThermostat(deviceId = '86') {
+    try {
+      if (window.deviceStateManager) {
+        await window.deviceStateManager.refreshDevice(deviceId);
+        const dev = this._getThermostatDeviceFromState(deviceId);
+        this.renderThermostat(dev);
+      }
+    } catch (e) {
+      console.error('Failed to refresh thermostat state:', e);
+    }
   }
 
   _rangeForMode(mode){

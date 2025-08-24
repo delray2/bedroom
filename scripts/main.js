@@ -450,9 +450,14 @@ function handleDeviceStateUpdate(deviceId, attributes) {
     window.updateTvModal(deviceId, attributes);
   }
   
-  if (deviceInfo.type === 'thermostat' && window.updateThermostatModal) {
-    console.log('Updating thermostat modal for device:', deviceId);
-    window.updateThermostatModal(deviceId, attributes);
+  if (deviceInfo.type === 'thermostat' && window.uiManager && typeof window.uiManager.isThermostatModalVisible === 'function') {
+    if (window.uiManager.isThermostatModalVisible()) {
+      console.log('Thermostat visible; re-rendering from state without extra fetch:', deviceId);
+      const dev = { attributes: (window.deviceStateManager && window.deviceStateManager.getDevice(deviceId)) || {} };
+      if (typeof window.uiManager.renderThermostat === 'function') {
+        window.uiManager.renderThermostat(dev);
+      }
+    }
   }
   
   // Update scenes if this is a light device and scenes are open

@@ -10,17 +10,19 @@ function openDeviceModal(label, deviceId, showBack = false) {
     return;
   }
   
-  showModalContent(`<div class="modal-header">${label}</div>
-    <div id='deviceControls' class="device-loading-message"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
+  showModalContent(`<div class="modal-header"><h2>${label}</h2></div>
+    <div id='deviceControls' class="control-panel with-arches" data-device-id="${deviceId}"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
   
-  fetch(`${window.MAKER_API_BASE}/devices/${deviceId}?access_token=${window.ACCESS_TOKEN}`)
-    .then(res => res.json())
-    .then(device => {
-      renderDeviceControls(device, deviceId, showBack);
-    })
-    .catch(err => {
-      document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to load device state.</span></div>`;
-    });
+  if (window.deviceStateManager) {
+    window.deviceStateManager.refreshDevice(deviceId)
+      .then(() => {
+        const attrs = window.deviceStateManager.getDevice(deviceId) || {};
+        renderDeviceControls({ attributes: attrs, capabilities: livingRoomDevices[deviceId]?.capabilities || [] }, deviceId, showBack);
+      })
+      .catch(() => {
+        document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to load device state.</span></div>`;
+      });
+  }
 }
 
 function renderDeviceControls(device, deviceId, showBack = false) {
@@ -120,24 +122,32 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   
   const currentColor = getCurrentColor();
   let html = '';
-  
-  // Top section with power toggle and color preview
-  html += `<div class="device-modal-container">
-    <div class="device-power-section">
-      <button class="circular-button control-button ${isOn ? 'device-power-button-on' : 'device-power-button-off'}" onclick="sendDeviceCommand('${deviceId}', '${isOn ? 'off' : 'on'}')">
-        <div class="icon">${isOn ? '🔆' : '🌙'}</div>
-        <div class="label">${isOn ? 'On' : 'Off'}</div>
-      </button>
-      <div class="device-color-preview" style="background: ${currentColor};"></div>
-    </div>
-  </div>`;
-  
-  // Curved sliders section - matching global controls style
-  html += `<div class="device-controls-group">`;
+
+  // Global-style ring buttons (per-device wiring)
+  const ringButtons = [
+    { icon: '🔆', label: 'On',     onclick: `sendDeviceCommand('${deviceId}','on')`,       cls: 'btn-all-on' },
+    { icon: '🌙', label: 'Off',    onclick: `sendDeviceCommand('${deviceId}','off')`,      cls: 'btn-all-off' },
+    { icon: '🔅', label: 'Dim',    onclick: `sendDeviceCommand('${deviceId}','setLevel',20)`,  cls: 'btn-dim' },
+    { icon: '☀️', label: 'Bright', onclick: `sendDeviceCommand('${deviceId}','setLevel',90)`,  cls: 'btn-bright' }
+  ];
+  const startDeg = -140, endDeg = -40; const steps = ringButtons.length - 1 || 1;
+  html += `<div class="bubble-ring global-ring-top" style="--radius: 180px;">`;
+  for (let i = 0; i < ringButtons.length; i++) {
+    const t = i / steps; const deg = startDeg + t * (endDeg - startDeg);
+    const b = ringButtons[i];
+    html += `<button class="bubble-btn global-btn ${b.cls}" style="transform: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${b.onclick}">
+      <span class="icon">${b.icon}</span>
+      <span class="label">${b.label}</span>
+    </button>`;
+  }
+  html += `</div>`;
+
+  // Controls group - same classes as global controls
+  html += `<div class="controls-group">`;
   
   // Brightness slider (Kawaii style)
   html += `
-    <div class="device-slider-wrapper">
+    <div class="slider-wrapper">
       <svg class="kawaii-slider" width="60" height="260">
         <defs>
           <linearGradient id="lvlGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -149,14 +159,14 @@ function renderDeviceControls(device, deviceId, showBack = false) {
         <path id="bgLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
         <path id="progressLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#lvlGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
       </svg>
-      <div class="device-slider-value" id="valLvl-${deviceId}">${level}%</div>
-      <div class="device-slider-label">Bright</div>
+      <div class="value" id="valLvl-${deviceId}">${level}%</div>
+      <div style="font-size: 12px;">Bright</div>
     </div>`;
   
   // Color Temperature slider (if supported)
   if (hasCapability('ColorTemperature')) {
     html += `
-      <div class="device-slider-wrapper">
+      <div class="slider-wrapper">
         <svg class="kawaii-slider" width="60" height="260">
           <defs>
             <linearGradient id="ctGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -168,8 +178,8 @@ function renderDeviceControls(device, deviceId, showBack = false) {
           <path id="bgCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
           <path id="progressCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#ctGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
         </svg>
-        <div class="device-slider-value" id="valCt-${deviceId}" style="color: #ff8a65;">${colorTemp}K</div>
-        <div class="device-slider-label">Temp</div>
+        <div class="value" id="valCt-${deviceId}" style="color: #ff8a65;">${colorTemp}K</div>
+        <div style="font-size: 12px;">Temp</div>
       </div>`;
   }
   
@@ -177,7 +187,7 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   if (hasCapability('ColorControl')) {
     // HUE Slider (Kawaii style)
     html += `
-      <div class="device-slider-wrapper">
+      <div class="slider-wrapper">
         <svg class="kawaii-slider" width="60" height="260">
           <defs>
             <linearGradient id="hueGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -194,13 +204,13 @@ function renderDeviceControls(device, deviceId, showBack = false) {
           <path id="bgHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
           <path id="progressHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#hueGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
         </svg>
-        <div class="device-slider-value" id="valHue-${deviceId}" style="color: #ff0000;">${hue}</div>
-        <div class="device-slider-label">Hue</div>
+        <div class="value" id="valHue-${deviceId}" style="color: #ff0000;">${hue}</div>
+        <div style="font-size: 12px;">Hue</div>
       </div>`;
     
     // SAT Slider (Kawaii style)
     html += `
-      <div class="device-slider-wrapper">
+      <div class="slider-wrapper">
         <svg class="kawaii-slider" width="60" height="260">
           <defs>
             <linearGradient id="satGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -212,19 +222,16 @@ function renderDeviceControls(device, deviceId, showBack = false) {
           <path id="bgSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
           <path id="progressSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#satGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
         </svg>
-        <div class="device-slider-value" id="valSat-${deviceId}" style="color: #ff0000;">${sat}</div>
-        <div class="device-slider-label">Sat</div>
+        <div class="value" id="valSat-${deviceId}" style="color: #ff0000;">${sat}</div>
+        <div style="font-size: 12px;">Sat</div>
       </div>`;
   }
   
   html += `</div>`;
   
-  // Refresh button
+  // Optional refresh button (kept minimal, styled like icon-only)
   html += `<div class="device-refresh-section">
-    <button id='refreshBtn' class='circular-button control-button device-refresh-button'>
-      <div class="icon">🔄</div>
-      <div class="label">Refresh</div>
-    </button>
+    <button id='refreshBtn' class='btn btn-info' title='Refresh'>🔄</button>
   </div>`;
   
   document.getElementById('deviceControls').innerHTML = html;
@@ -250,15 +257,18 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   
   // Event listeners for the refresh button
   document.getElementById('refreshBtn').onclick = function() {
-    document.getElementById('deviceControls').innerHTML = '<div class="device-loading-message"><em>Refreshing...</em></div>';
-    fetch(`${window.MAKER_API_BASE}/devices/${deviceId}?access_token=${window.ACCESS_TOKEN}`)
-      .then(res => res.json())
-      .then(device => {
-        renderDeviceControls(device, deviceId, showBack);
-      })
-      .catch(err => {
-        document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to refresh device state.</span></div>`;
-      });
+    const container = document.getElementById('deviceControls');
+    container.innerHTML = '<div class="device-loading-message"><em>Refreshing...</em></div>';
+    if (window.deviceStateManager) {
+      window.deviceStateManager.refreshDevice(deviceId)
+        .then(() => {
+          const attrs = window.deviceStateManager.getDevice(deviceId) || {};
+          renderDeviceControls({ attributes: attrs, capabilities: livingRoomDevices[deviceId]?.capabilities || [] }, deviceId, showBack);
+        })
+        .catch(() => {
+          container.innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to refresh device state.</span></div>`;
+        });
+    }
   };
 }
 

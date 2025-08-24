@@ -283,12 +283,25 @@ function updateOpenDeviceModals(deviceId, attributes) {
   // Check if device controls are visible and update them
   const deviceControls = modalBody.querySelector('#deviceControls');
   if (deviceControls && deviceControls.style.display !== 'none') {
-    // Find which device modal is open and update it
-    const deviceIdMatch = deviceControls.querySelector(`[data-device-id="${deviceId}"]`);
-    if (deviceIdMatch) {
-      // Trigger a refresh of the device controls
-      if (window.uiManager && window.uiManager.loadDeviceControls) {
+    const openId = deviceControls.getAttribute('data-device-id');
+    if (openId && String(openId) === String(deviceId)) {
+      // Re-render from state without fetching
+      const attrs = (window.deviceStateManager && window.deviceStateManager.getDevice(deviceId)) || {};
+      if (typeof window.renderDeviceControls === 'function') {
+        window.renderDeviceControls({ attributes: attrs, capabilities: [] }, deviceId, true);
+      } else if (window.uiManager && window.uiManager.loadDeviceControls) {
+        // fallback to existing loader
         window.uiManager.loadDeviceControls(deviceId, true);
+      }
+    }
+  }
+
+  // If thermostat modal is open and this update pertains to it, re-render from state without fetching
+  if (window.uiManager && typeof window.uiManager.isThermostatModalVisible === 'function' && window.uiManager.isThermostatModalVisible()) {
+    if (String(deviceId) === '86') {
+      const dev = { attributes: (window.deviceStateManager && window.deviceStateManager.getDevice('86')) || {} };
+      if (typeof window.uiManager.renderThermostat === 'function') {
+        window.uiManager.renderThermostat(dev);
       }
     }
   }
@@ -301,7 +314,9 @@ function updateGlobalControls(deviceId, attributes) {
   if (globalModal && globalModal.style.display !== 'none') {
     // Update global controls display
     if (window.renderGlobalControls && deviceId === window.BEDROOM_GROUP_ID) { // BedroomLifxGOG group
-      window.renderGlobalControls({ attributes });
+      // Prefer the latest from state manager to keep one source of truth
+      const attrs = (window.deviceStateManager && window.deviceStateManager.getDevice(window.BEDROOM_GROUP_ID)) || attributes || {};
+      window.renderGlobalControls({ attributes: attrs });
     }
   }
 }

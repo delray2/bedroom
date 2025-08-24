@@ -461,13 +461,14 @@ function showGlobalControlsModal() {
 
   // fetch BedroomLifxGOG and render controls
   const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
-  const API_BASE = 'http://192.168.4.44/apps/api/37';
-  const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af';
-  
-  fetch(`${API_BASE}/devices/${BEDROOM_LIGHTS_ID}?access_token=${ACCESS_TOKEN}`)
-    .then(res => res.json())
-    .then(device => renderGlobalControls(device))
-    .catch(() => { console.error('Failed to load BedroomLifxGOG state.'); });
+  if (window.deviceStateManager) {
+    window.deviceStateManager.refreshDevice(BEDROOM_LIGHTS_ID)
+      .then(() => {
+        const attrs = window.deviceStateManager.getDevice(BEDROOM_LIGHTS_ID) || {};
+        renderGlobalControls({ attributes: attrs });
+      })
+      .catch(() => { console.error('Failed to load BedroomLifxGOG state from state manager.'); });
+  }
 }
 
 
@@ -654,7 +655,8 @@ function renderGlobalControls(device) {
 }
 
 window.sendGlobalCommand = function(command, value) {
-  let url = `${window.MAKER_API_BASE}/devices/${window.LRGROUP_ID}/${command}`;
+  const targetId = window.BEDROOM_GROUP_ID; // Global controls target the Bedroom Lights group
+  let url = `${window.MAKER_API_BASE}/devices/${targetId}/${command}`;
   if (value !== undefined) url += `/${value}`;
   url += `?access_token=${window.ACCESS_TOKEN}`;
   
@@ -668,6 +670,8 @@ window.sendGlobalCommand = function(command, value) {
         setTimeout(() => { feedback.style.display = 'none'; }, 1800);
       }
       showToast(`Global command sent successfully!`, 'success');
+      // Do not fetch again; WS will update state manager. Optionally rate-limit refresh:
+      // if needed: window.deviceStateManager.refreshDevice(targetId);
     })
     .catch(err => {
       console.error('Failed to send global command:', err);
