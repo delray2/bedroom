@@ -39,13 +39,8 @@ const apiService = {
       
       const result = await response.json();
       
-      // Automatically refresh device state after command
-      if (window.deviceStateManager) {
-        // Small delay to allow Hubitat to process the command
-        setTimeout(() => {
-          this.refreshDeviceAfterCommand(deviceId);
-        }, 500);
-      }
+      // Don't refresh automatically - webhooks will provide real-time updates
+      // This prevents infinite loops between commands and webhooks
       
       return result;
     } catch (error) {
@@ -104,12 +99,8 @@ const apiService = {
       
       const result = await response.json();
       
-      // Refresh all devices in the group after command
-      if (window.deviceStateManager) {
-        setTimeout(() => {
-          this.refreshGroupDevices(groupId);
-        }, 1000);
-      }
+      // Don't refresh automatically - webhooks will provide real-time updates
+      // This prevents infinite loops between commands and webhooks
       
       return result;
     } catch (error) {

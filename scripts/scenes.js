@@ -4,7 +4,7 @@ const lifxScenes = [
     name: 'White',
     gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f7f7f7 35%, #ebebeb 70%, #dcdcdc 100%)',
     bulbs: [
-      { deviceId: '487', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1
+      { deviceId: '480', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1
       { deviceId: '451', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 2
       { deviceId: '447', color: '#ffffff', brightness: 100, temp: 4000 }  // Bed Lamp
     ],
@@ -19,7 +19,7 @@ const lifxScenes = [
     name: 'Sunset',
     gradient: 'conic-gradient(from 200deg at 50% 50%, #ff4500 0%, #ff6347 25%, #ffd700 50%, #ff8c00 75%, #dc143c 100%)',
     bulbs: [
-      { deviceId: '487', color: '#ff4500', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Red-orange
+      { deviceId: '480', color: '#ff4500', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Red-orange
       { deviceId: '451', color: '#ffd700', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Gold
       { deviceId: '447', color: '#ff6347', brightness: 60, temp: 3500 }   // Bed Lamp - Tomato red
     ],
@@ -33,7 +33,7 @@ const lifxScenes = [
     name: 'Ocean',
     gradient: 'radial-gradient(circle at 40% 30%, #006994 0%, #00bfff 40%, #87ceeb 75%, #e0f6ff 100%)',
     bulbs: [
-      { deviceId: '487', color: '#000080', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Navy blue
+      { deviceId: '480', color: '#000080', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Navy blue
       { deviceId: '451', color: '#00bfff', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Deep sky blue
       { deviceId: '447', color: '#87ceeb', brightness: 65, temp: 6000 }   // Bed Lamp - Sky blue
     ],
@@ -47,7 +47,7 @@ const lifxScenes = [
     name: 'Forest',
     gradient: 'radial-gradient(circle at 60% 40%, #2d5016 0%, #4a7c59 30%, #ffffff 55%, rgb(58, 7, 111) 75%, #8b4513 100%)',
     bulbs: [
-      { deviceId: '487', color: '#2d5016', brightness: 80, temp: 5000 },  // Bedroom Fan 1 - Dark green
+      { deviceId: '480', color: '#2d5016', brightness: 80, temp: 5000 },  // Bedroom Fan 1 - Dark green
       { deviceId: '451', color: '#4a7c59', brightness: 70, temp: 5500 },  // Bedroom Fan 2 - Forest green
       { deviceId: '447', color: '#ffffff', brightness: 60, temp: 5200 }   // Bed Lamp - White
     ],
@@ -61,7 +61,7 @@ const lifxScenes = [
     name: 'Candlelight',
     gradient: 'radial-gradient(circle at 50% 45%, #ffd452 0%, #ffb347 45%, #ff6961 100%)',
     bulbs: [
-      { deviceId: '487', color: '#ffd452', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
+      { deviceId: '480', color: '#ffd452', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
       { deviceId: '451', color: '#ffb347', brightness: 50, temp: 2500 },  // Bedroom Fan 2 - Orange
       { deviceId: '447', color: '#ff6961', brightness: 40, temp: 2800 }   // Bed Lamp - Soft red
     ],
@@ -75,7 +75,7 @@ const lifxScenes = [
     name: 'Magenta Dream',
     gradient: 'conic-gradient(from 90deg at 50% 50%, #ff61a6 0%, #a18cd1 50%, #4a90e2 100%)',
     bulbs: [
-      { deviceId: '487', color: '#ff61a6', brightness: 75, temp: 3500 },  // Bedroom Fan 1 - Magenta
+      { deviceId: '480', color: '#ff61a6', brightness: 75, temp: 3500 },  // Bedroom Fan 1 - Magenta
       { deviceId: '451', color: '#a18cd1', brightness: 65, temp: 4000 },  // Bedroom Fan 2 - Purple
       { deviceId: '447', color: '#4a90e2', brightness: 55, temp: 4500 }   // Bed Lamp - Blue
     ],
@@ -89,7 +89,7 @@ const lifxScenes = [
     name: 'Aurora',
     gradient: 'conic-gradient(at 50% 50%, #00ff87 0%, #00ffff 20%, #0080ff 40%, #8000ff 60%, #ff0080 80%, #ffff00 100%)',
     bulbs: [
-      { deviceId: '487', color: '#00ff87', brightness: 70, temp: 5000 },  // Bedroom Fan 1 - Spring green
+      { deviceId: '480', color: '#00ff87', brightness: 70, temp: 5000 },  // Bedroom Fan 1 - Spring green
       { deviceId: '451', color: '#00ffff', brightness: 60, temp: 6000 },  // Bedroom Fan 2 - Cyan
       { deviceId: '447', color: '#8000ff', brightness: 50, temp: 7000 }   // Bed Lamp - Purple
     ],
@@ -103,7 +103,7 @@ const lifxScenes = [
     name: 'Cozy',
     gradient: 'radial-gradient(circle at 40% 60%, #ff9a9e 0%, #fecfef 50%, #ffd1dc 100%)',
     bulbs: [
-      { deviceId: '487', color: '#ff9a9e', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Soft pink
+      { deviceId: '480', color: '#ff9a9e', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Soft pink
       { deviceId: '451', color: '#fecfef', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
       { deviceId: '447', color: '#ffb3ba', brightness: 45, temp: 3100 }   // Bed Lamp - Medium pink
     ],
@@ -124,7 +124,7 @@ const WLED_DEVICES = {
 // Safe access to Hubitat Maker API globals
 const MAKER = typeof window !== 'undefined' ? (window.MAKER_API_BASE || '') : '';
 const TOKEN = typeof window !== 'undefined' ? (window.ACCESS_TOKEN || '') : '';
-const LRID = typeof window !== 'undefined' ? (window.LRGROUP_ID || '') : '';
+const LRID = typeof window !== 'undefined' ? (window.BEDROOM_LIGHTS_ID || '') : '';
 
 function showScenesModal() {
   const sceneCount = lifxScenes.length;
@@ -459,15 +459,15 @@ function showGlobalControlsModal() {
     }
   }, 100);
 
-  // fetch Bedroom Lights and render controls
-  const BEDROOM_LIGHTS_ID = '457'; // Bedroom Lights device ID
+  // fetch BedroomLifxGOG and render controls
+  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
   const API_BASE = 'http://192.168.4.44/apps/api/37';
   const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af';
   
   fetch(`${API_BASE}/devices/${BEDROOM_LIGHTS_ID}?access_token=${ACCESS_TOKEN}`)
     .then(res => res.json())
     .then(device => renderGlobalControls(device))
-    .catch(() => { console.error('Failed to load Bedroom Lights state.'); });
+    .catch(() => { console.error('Failed to load BedroomLifxGOG state.'); });
 }
 
 
@@ -535,7 +535,7 @@ const setupKawaiiSlider = (bgId, progressId, valueId, command) => {
     dragging = false;
     window.removeEventListener("mousemove", move);
     
-    // Send command to Bedroom Lights device (ID: 457)
+    // Send command to BedroomLifxGOG device (ID: 478)
     sendBedroomLightsCommand(command, currentValue);
   }
   
@@ -579,9 +579,9 @@ const setupKawaiiSlider = (bgId, progressId, valueId, command) => {
   });
 };
 
-// Send command to Bedroom Lights device (ID: 457) using Hubitat API
+// Send command to BedroomLifxGOG device using Hubitat API
 function sendBedroomLightsCommand(command, value) {
-  const BEDROOM_LIGHTS_ID = '457'; // Bedroom Lights device ID from devicesfulldetails.json
+  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
   const API_BASE = 'http://192.168.4.44/apps/api/37'; // From localUrls.md
   const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af'; // From localUrls.md
   
@@ -594,12 +594,12 @@ function sendBedroomLightsCommand(command, value) {
   fetch(url)
     .then(res => res.text())
     .then(() => {
-      console.log(`Bedroom Lights command sent: ${command}${value ? ` = ${value}` : ''}`);
-      showToast(`Bedroom Lights ${command} ${value ? value : 'command'} sent!`, 'success');
+      console.log(`BedroomLifxGOG command sent: ${command}${value ? ` = ${value}` : ''}`);
+      showToast(`BedroomLifxGOG ${command} ${value ? value : 'command'} sent!`, 'success');
     })
     .catch(err => {
-      console.error('Failed to send Bedroom Lights command:', err);
-      showToast(`Failed to control Bedroom Lights: ${err.message}`, 'error');
+      console.error('Failed to send BedroomLifxGOG command:', err);
+      showToast(`Failed to control BedroomLifxGOG: ${err.message}`, 'error');
     });
 }
 
@@ -610,7 +610,7 @@ function renderGlobalControls(device) {
   const hue = Number(attr.hue || 0);
   const sat = Number(attr.saturation || 0);
   
-  console.log('Bedroom Lights state:', { isOn, level, hue, sat });
+  console.log('BedroomLifxGOG state:', { isOn, level, hue, sat });
   
   // Update kawaii slider values and visual progress
   const valLvl = document.getElementById('valLvl');
@@ -678,7 +678,7 @@ window.sendGlobalCommand = function(command, value) {
 // Make power toggle wrapper stable for inline handler
 window.globalPowerToggle = function() {
   // Fetch current, then invert
-  fetch(`${window.MAKER_API_BASE}/devices/${window.LRGROUP_ID}?access_token=${window.ACCESS_TOKEN}`)
+  fetch(`${window.MAKER_API_BASE}/devices/${window.BEDROOM_GROUP_ID_ID}?access_token=${window.ACCESS_TOKEN}`)
     .then(r => r.json())
     .then(dev => {
       const isOn = (Array.isArray(dev.attributes) ? (dev.attributes.find(a => a.name === 'switch')?.currentValue) : dev.attributes?.switch) === 'on';

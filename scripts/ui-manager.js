@@ -56,13 +56,20 @@ class UIManager {
   }
 
   updateGlobalControls(deviceId, attributes) {
-    // Update global controls if they're open and this is the Bedroom Lights group
-    if (deviceId === '457') { // Bedroom Lights group
+    // Update global controls if they're open and this is the BedroomLifxGOG group
+    if (deviceId === window.BEDROOM_GROUP_ID) { // BedroomLifxGOG group
       const globalModal = document.querySelector('.global-ring-top');
       if (globalModal && globalModal.style.display !== 'none') {
         if (window.renderGlobalControls) {
           window.renderGlobalControls({ attributes });
         }
+      }
+    }
+    
+    // Update paddle switch UI if this is BedroomLifxGOG
+    if (deviceId === window.BEDROOM_GROUP_ID && attributes.switch !== undefined) {
+      if (typeof window.updatePaddleSwitchUI === 'function') {
+        window.updatePaddleSwitchUI(attributes.switch === 'on');
       }
     }
   }
@@ -136,7 +143,7 @@ class UIManager {
     const bubbles = [
       { label: 'Bed Lamp', id: '447', icon: '💡' },
       { label: 'Laundry 1', id: '450', icon: '💡' },
-      { label: 'Bedroom Fan 1', id: '487', icon: '💡' },
+      { label: 'Bedroom Fan 1', id: '480', icon: '💡' },
       { label: 'Bedroom Fan 2', id: '451', icon: '💡' },
       { label: 'Scenes', id: 'scenes', icon: '🎬' },
       { label: 'WLED Effects', id: 'wled', icon: '✨' },
@@ -144,7 +151,7 @@ class UIManager {
     ];
 
     const bubbleCount = bubbles.length;
-    let html = `<div class="room-badge">Bedroom<br>Lights</div>
+    let html = `<div class="room-badge">Bedroom<br>LifxGOG</div>
       <div class="bubble-ring count-${bubbleCount}">`;
     
     bubbles.forEach((bubble, i) => {
@@ -164,7 +171,7 @@ class UIManager {
   }
 
   handleBubbleClick(label, id) {
-    if (['447','450','487','451'].includes(id)) {
+    if (['447','450','480','451'].includes(id)) {
       this.showDeviceModal(label, id, true);
     } else if (id === 'scenes') {
       this.showScenesModal();

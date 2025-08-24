@@ -88,7 +88,7 @@ Hubitat Device Change → Webhook → Backend → WebSocket → Frontend → UI 
 Update these constants in `scripts/main.js`:
 
 ```javascript
-const BEDROOM_GROUP_ID = '457'; // Your Bedroom Lights group ID
+const BEDROOM_GROUP_ID = '534'; // Your BedroomLifxGOG group ID
 const BEDROOM_FAN2_ID = '451';  // Your Fan 2 device ID
 const MAKER_API_BASE = 'http://192.168.4.44/apps/api/37'; // Your Hubitat IP
 const ACCESS_TOKEN = 'your-access-token-here';
@@ -107,7 +107,7 @@ Configure Hubitat to send webhooks when device attributes change. See the [Webho
 
 ### Main Dashboard
 
-- **Paddle Switch**: Controls the Bedroom Lights group
+- **Paddle Switch**: Controls the BedroomLifxGOG group
 - **Side Buttons**: Access different device categories
 - **Lock Indicator**: Shows front door lock status
 - **Clock**: Current date and time
@@ -115,7 +115,7 @@ Configure Hubitat to send webhooks when device attributes change. See the [Webho
 ### Device Controls
 
 - **Individual Device Modals**: Control specific devices with sliders and buttons
-- **Global Controls**: Control all bedroom lights simultaneously
+- **Global Controls**: Control all BedroomLifxGOG lights simultaneously
 - **Scene Selection**: Apply pre-configured lighting scenes
 - **WLED Effects**: Control LED strips with effects and palettes
 

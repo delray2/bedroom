@@ -43,24 +43,42 @@ backend.post('/api/hubitat/webhook', (req, res) => {
   try {
     console.log('Hubitat webhook received:', req.body);
     
-    const { deviceId, attributes, event, name, value, currentValue } = req.body;
+    // Handle the actual Hubitat webhook format with content wrapper
+    let deviceId, attributes, name, value;
+    
+    if (req.body.content) {
+      // New Hubitat format with content wrapper
+      const content = req.body.content;
+      deviceId = content.deviceId;
+      name = content.name;
+      value = content.value;
+      
+      // Create normalized attributes object
+      attributes = {};
+      if (name && value !== undefined) {
+        attributes[name] = value;
+      }
+    } else {
+      // Legacy format (fallback)
+      deviceId = req.body.deviceId;
+      attributes = req.body.attributes || {};
+      name = req.body.name;
+      value = req.body.value || req.body.currentValue;
+      
+      if (name && value !== undefined) {
+        attributes[name] = value;
+      }
+    }
     
     if (deviceId) {
       // Normalize the data structure
       const normalizedData = {
         type: 'device_state_update',
         deviceId: String(deviceId),
-        attributes: attributes || {},
-        event: event || 'attribute_change',
+        attributes: attributes,
+        event: 'attribute_change',
         timestamp: Date.now()
       };
-      
-      // If we have individual attribute updates, add them
-      if (name && value !== undefined) {
-        normalizedData.attributes[name] = value;
-      } else if (name && currentValue !== undefined) {
-        normalizedData.attributes[name] = currentValue;
-      }
       
       // Broadcast to all WebSocket clients
       broadcast(normalizedData);

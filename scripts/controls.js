@@ -207,12 +207,25 @@ window.showRokuTvModal = function() {
 
 window.fireTvSendCommand = function(cmd) {
   if (cmd === 'power') {
-    // Special handling for power: toggle the firetvswitch (ID 532) via Maker API
-    const url = `${window.MAKER_API_BASE}/devices/532/toggle?access_token=${window.ACCESS_TOKEN}`;
-    fetch(url)
+    // Toggle the Hubitat virtual switch for Fire TV power (device 532)
+    const statusUrl = `${window.MAKER_API_BASE}/devices/532?access_token=${window.ACCESS_TOKEN}`;
+    fetch(statusUrl)
       .then(r => r.json())
-      .then(() => {
-        showToast('Fire TV power toggled!', 'success');
+      .then(device => {
+        const attrs = device?.attributes || {};
+        const current = Array.isArray(attrs) ? (attrs.find(a => a.name === 'switch')?.currentValue) : attrs.switch;
+        const nextCmd = current === 'on' ? 'off' : 'on';
+        const toggleUrl = `${window.MAKER_API_BASE}/devices/532/${nextCmd}?access_token=${window.ACCESS_TOKEN}`;
+        return fetch(toggleUrl).then(() => nextCmd);
+      })
+      .then(nextCmd => {
+        showToast(`Fire TV power ${nextCmd} sent!`, 'success');
+        const feedback = document.getElementById('fireTvFeedback');
+        if (feedback) {
+          feedback.textContent = `Fire TV power ${nextCmd}!`;
+          feedback.classList.add('fireTvFeedback-visible');
+          setTimeout(() => { feedback.classList.remove('fireTvFeedback-visible'); }, 1800);
+        }
       })
       .catch(err => {
         console.error('Failed to toggle Fire TV power:', err);
@@ -221,10 +234,26 @@ window.fireTvSendCommand = function(cmd) {
     return;
   }
 
-  // Use the curl command structure for other Fire TV commands
-  const command = cmd.toUpperCase();
-  console.log(`Sending Fire TV command: ${command} via Home Assistant`);
-  console.log(`Entity ID: media_player.fire_tv_192_168_4_54`);
+  // Use curl.command structure for ADB commands via Home Assistant
+  const COMMAND_MAP = {
+    up: 'UP',
+    down: 'DOWN',
+    left: 'LEFT',
+    right: 'RIGHT',
+    select: 'ENTER',
+    home: 'HOME',
+    back: 'BACK',
+    play: 'PLAY',
+    pause: 'PAUSE',
+    stop: 'STOP',
+    mute: 'MUTE',
+    volumeup: 'VOLUME_UP',
+    volumedown: 'VOLUME_DOWN',
+    hdmi1: 'HDMI1',
+    hdmi2: 'HDMI2',
+    hdmi3: 'HDMI3'
+  };
+  const adbCommand = COMMAND_MAP[cmd] || String(cmd || '').toUpperCase();
   
   fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
     method: 'POST',
@@ -234,23 +263,19 @@ window.fireTvSendCommand = function(cmd) {
     },
     body: JSON.stringify({
       entity_id: 'media_player.fire_tv_192_168_4_54',
-      command: command
+      command: adbCommand
     })
   }).then(r => {
-    console.log(`Home Assistant response status: ${r.status}`);
-    if (!r.ok) {
-      throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-    }
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
     return r.json();
-  }).then((data) => {
-    console.log(`Home Assistant response data:`, data);
+  }).then(() => {
     const feedback = document.getElementById('fireTvFeedback');
     if (feedback) {
-      feedback.textContent = `Fire TV command "${cmd}" sent!`;
-      feedback.classList.add(".fireTvFeedback-visible");
-      setTimeout(() => { feedback.classList.remove(".fireTvFeedback-visible"); }, 1800);
+      feedback.textContent = `Fire TV command "${adbCommand}" sent!`;
+      feedback.classList.add('fireTvFeedback-visible');
+      setTimeout(() => { feedback.classList.remove('fireTvFeedback-visible'); }, 1800);
     }
-    showToast(`Fire TV command "${cmd}" sent!`, 'success');
+    showToast(`Fire TV command "${adbCommand}" sent!`, 'success');
   }).catch(err => {
     console.error('Failed to send Fire TV command:', err);
     showToast(`Failed to send Fire TV command: ${err.message}`, 'error');

@@ -157,8 +157,9 @@ function connectWebSocket() {
     wsReconnectAttempts = 0;
     
     // Request initial state refresh for key devices
-    if (window.deviceStateManager) {
+    if (window.deviceStateManager && !window._initialRefreshDone) {
       requestInitialStateRefresh();
+      window._initialRefreshDone = true;
     }
   };
   
@@ -230,6 +231,14 @@ function handleWebSocketMessage(msg) {
 function handleDeviceStateUpdate(deviceId, attributes, timestamp) {
   console.log('Device state update received:', { deviceId, attributes, timestamp });
   
+  // Prefer centralized handler from main.js, but avoid self-recursion if not yet set
+  const centralHandler = window.handleDeviceStateUpdate;
+  if (typeof centralHandler === 'function' && centralHandler !== handleDeviceStateUpdate) {
+    centralHandler(deviceId, attributes);
+    return;
+  }
+
+  // Local handling when centralized handler is unavailable
   if (!window.deviceStateManager) {
     console.warn('State manager not available');
     return;
@@ -249,13 +258,15 @@ function updateUIForDevice(deviceId, attributes) {
     setLockIndicator(attributes.lock);
   }
   
-  // Update paddle switch if this is Bedroom Lights group (ID: 457) - only from external state changes
-  if (deviceId === '457' && attributes.switch !== undefined) {
-    console.log('External state change for Bedroom Lights:', attributes.switch);
-    if (typeof setPaddleSwitch === 'function') {
-      setPaddleSwitch(attributes.switch === 'on');
+          // Update paddle switch if this is BedroomLifxGOG group - support groupState and switch
+    if (deviceId === window.BEDROOM_GROUP_ID && (attributes.groupState !== undefined || attributes.switch !== undefined)) {
+      const hasGroup = attributes.groupState !== undefined;
+      const isOn = hasGroup ? (attributes.groupState === 'allOn' || attributes.groupState === 'on') : (attributes.switch === 'on');
+      console.log('External state change for BedroomLifxGOG. isOn =', isOn, 'attributes =', attributes);
+      if (typeof updatePaddleSwitchUI === 'function') {
+        updatePaddleSwitchUI(isOn);
+      }
     }
-  }
   
   // Update device modals if they're open
   updateOpenDeviceModals(deviceId, attributes);
@@ -289,7 +300,7 @@ function updateGlobalControls(deviceId, attributes) {
   const globalModal = document.querySelector('.global-ring-top');
   if (globalModal && globalModal.style.display !== 'none') {
     // Update global controls display
-    if (window.renderGlobalControls && deviceId === '457') { // Bedroom Lights group
+    if (window.renderGlobalControls && deviceId === window.BEDROOM_GROUP_ID) { // BedroomLifxGOG group
       window.renderGlobalControls({ attributes });
     }
   }
@@ -334,7 +345,10 @@ function handleDeviceRefreshRequest(deviceId) {
   console.log('Device refresh requested for:', deviceId);
   
   if (window.deviceStateManager) {
-    window.deviceStateManager.refreshDevice(deviceId);
+    // Comment out refreshDevice calls to prevent excessive requests
+    // window.deviceStateManager.refreshDevice(deviceId);
+    // window.deviceStateManager.refreshDevice(deviceId);
+    // window.deviceStateManager.refreshDevice(deviceId);
   }
 }
 
@@ -351,7 +365,17 @@ function handleBulkDeviceRefreshRequest(deviceIds) {
 
 // Request initial state refresh for key devices
 function requestInitialStateRefresh() {
-  const keyDevices = ['451', '509', '457']; // Fan 2, Lock, Bedroom Lights
+  const keyDevices = [
+    '451',  // Bedroom Fan 2
+    '509',  // Front Door Lock
+    window.BEDROOM_GROUP_ID,  // BedroomLifxGOG
+    '447',  // Bed Lamp
+    '450',  // Laundry 1
+    '480',  // Bedroom Fan 1
+    '86',   // Entryway Thermostat
+    '473',  // Bedroom TV
+    '474'   // 50" Philips Roku TV
+  ]; // Key devices for initial state loading
   
   keyDevices.forEach(deviceId => {
     if (window.deviceStateManager) {
