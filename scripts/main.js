@@ -289,6 +289,36 @@ function updatePaddleSwitchFromState() {
   }
 }
 
+// Initialize the dashboard
+async function initializeDashboard() {
+  try {
+    console.log('Initializing dashboard...');
+    
+    // Initialize state manager
+    if (window.deviceStateManager) {
+      window.deviceStateManager.subscribe(handleDeviceStateUpdate);
+    }
+    
+    // Initial state refresh for key devices
+    await Promise.all([
+      window.apiService.getDeviceStatus(BEDROOM_GROUP_ID),
+      window.apiService.getDeviceStatus('474'), // 50" Philips Roku TV
+      window.apiService.getDeviceStatus('473'), // Bedroom tv (94E742) - Roku TV
+      window.apiService.getDeviceStatus('457')  // Bedroom Lights
+    ]);
+    
+    // Update paddle switch based on BedroomLifxGOG group state (only called on initial load and external state changes)
+    updatePaddleSwitchFromState();
+    
+    // Update paddle switch 2 based on overall device states
+    updatePaddleSwitch2UI();
+    
+    console.log('Dashboard initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize dashboard:', error);
+  }
+}
+
 // Notify backend on load (optional)
 window.addEventListener('DOMContentLoaded', function() {
   try {
@@ -370,6 +400,60 @@ function sendToggleCommand(newState) {
 window.updatePaddleSwitchUI = updatePaddleSwitchUI;
 window.sendToggleCommand = sendToggleCommand;
 
+// Function to update paddle switch 2 UI based on overall device states
+async function updatePaddleSwitch2UI() {
+  if (!paddleSwitch2) return;
+  
+  try {
+    // Check current states of all devices
+    const bedroomLightsState = await window.apiService.getDeviceStatus('457'); // Bedroom Lights
+    const bedroomTvState = await window.apiService.getDeviceStatus('473'); // Bedroom tv (94E742) - Roku TV
+    
+    // Check Fire TV state via Home Assistant
+    let fireTvState = null;
+    try {
+      const response = await fetch('http://192.168.4.145:8123/api/states/media_player.fire_tv_192_168_4_54', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        fireTvState = await response.json();
+      }
+    } catch (error) {
+      console.warn('Could not check Fire TV state for UI update:', error);
+      fireTvState = { state: 'off' };
+    }
+    
+    // Determine current states
+    const lightsOn = bedroomLightsState.attributes?.switch === 'on';
+    const bedroomTvOn = bedroomTvState.attributes?.switch === 'on';
+    const fireTvOn = fireTvState?.state === 'on';
+    
+    // If all devices are on, show paddle switch 2 as on
+    const allDevicesOn = lightsOn && bedroomTvOn && fireTvOn;
+    
+    if (allDevicesOn) {
+      paddleSwitch2.classList.add('on');
+      paddleSwitch2.classList.remove('off');
+    } else {
+      paddleSwitch2.classList.remove('on');
+      paddleSwitch2.classList.add('off');
+    }
+    
+    console.log('Updated paddle switch 2 UI - all devices on:', allDevicesOn);
+    
+  } catch (error) {
+    console.error('Failed to update paddle switch 2 UI:', error);
+  }
+}
+
+// Make the function globally available
+window.updatePaddleSwitch2UI = updatePaddleSwitch2UI;
+
 paddleSwitch.onclick = function(e) {
   e.stopPropagation();
   
@@ -392,6 +476,131 @@ paddleSwitch.onclick = function(e) {
 // Add rate limiting to prevent excessive updates
 let lastUpdateTimestamp = 0;
 const RATE_LIMIT_INTERVAL = 1000; // 1 second
+
+// Paddle Switch 2 - "All" switch that intelligently controls lights and TVs
+const paddleSwitch2 = document.getElementById('paddleSwitch2');
+if (paddleSwitch2) {
+  paddleSwitch2.onclick = async function(e) {
+    e.stopPropagation();
+    
+    // Haptic feedback for touch devices
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    
+    console.log('Paddle switch 2 (All) clicked - checking device states...');
+    
+    try {
+      // Check current states of all devices
+      const bedroomLightsState = await window.apiService.getDeviceStatus('457'); // Bedroom Lights
+      const bedroomTvState = await window.apiService.getDeviceStatus('473'); // Bedroom tv (94E742) - Roku TV
+      
+      // Check Fire TV state via Home Assistant
+      let fireTvState = null;
+      try {
+        const response = await fetch('http://192.168.4.145:8123/api/states/media_player.fire_tv_192_168_4_54', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          fireTvState = await response.json();
+        }
+      } catch (error) {
+        console.warn('Could not check Fire TV state:', error);
+        // Continue without Fire TV state - assume it's off
+        fireTvState = { state: 'off' };
+      }
+      
+      // Determine current states
+      const lightsOn = bedroomLightsState.attributes?.switch === 'on';
+      const bedroomTvOn = bedroomTvState.attributes?.switch === 'on';
+      const fireTvOn = fireTvState?.state === 'on';
+      
+      console.log('Current device states:', {
+        lights: lightsOn ? 'on' : 'off',
+        bedroomTv: bedroomTvOn ? 'on' : 'off',
+        fireTv: fireTvOn ? 'on' : 'off'
+      });
+      
+      // Check if any device is currently off
+      const anyDeviceOff = !lightsOn || !bedroomTvOn || !fireTvOn;
+      
+      if (anyDeviceOff) {
+        // At least one device is off, so turn everything on
+        console.log('At least one device is off - turning everything on');
+        
+        // Turn on bedroom lights
+        await window.apiService.sendDeviceCommand('457', 'on');
+        
+        // Turn on bedroom TV (Roku TV)
+        await window.apiService.sendDeviceCommand('473', 'on');
+        
+        // Turn on Fire TV via Home Assistant
+        try {
+          await fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              entity_id: 'media_player.fire_tv_192_168_4_54',
+              command: 'POWER'
+            })
+          });
+        } catch (error) {
+          console.warn('Could not turn on Fire TV:', error);
+        }
+        
+        // Update UI to show everything is on
+        paddleSwitch2.classList.add('on');
+        paddleSwitch2.classList.remove('off');
+        
+        showToast('All devices turned on!', 'success');
+      } else {
+        // All devices are on, so turn everything off
+        console.log('All devices are on - turning everything off');
+        
+        // Turn off bedroom lights
+        await window.apiService.sendDeviceCommand('457', 'off');
+        
+        // Turn off bedroom TV (Roku TV)
+        await window.apiService.sendDeviceCommand('473', 'off');
+        
+        // Turn off Fire TV via Home Assistant
+        try {
+          await fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              entity_id: 'media_player.fire_tv_192_168_4_54',
+              command: 'POWER'
+            })
+          });
+        } catch (error) {
+          console.warn('Could not turn off Fire TV:', error);
+        }
+        
+        // Update UI to show everything is off
+        paddleSwitch2.classList.remove('on');
+        paddleSwitch2.classList.add('off');
+        
+        showToast('All devices turned off!', 'success');
+      }
+      
+    } catch (error) {
+      console.error('Failed to check device states:', error);
+      showToast('Failed to check device states', 'error');
+    }
+  };
+}
 
 // Centralized function to handle device state updates from webhooks
 function handleDeviceStateUpdate(deviceId, attributes) {
@@ -423,6 +632,14 @@ function handleDeviceStateUpdate(deviceId, attributes) {
       window.updatePaddleSwitchUI(isOn);
     }
   }
+
+  // Update paddle switch 2 if this is a device it controls
+if ((deviceId === '457' || deviceId === '473') && attributes.switch !== undefined) {
+  // Check if we should update paddle switch 2 based on overall state
+  if (typeof window.updatePaddleSwitch2UI === 'function') {
+    window.updatePaddleSwitch2UI();
+  }
+}
   
   // Update lock indicator if this is the front door lock
   if (deviceId === '509' && attributes.lock !== undefined) {

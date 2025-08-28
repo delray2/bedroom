@@ -1,4 +1,4 @@
-// --- Camera Modal Logic ---
+     // --- Camera Modal Logic ---
 let cameraModalTimeout = null;
 let videoStream = null;
 let currentVideoElement = null;
@@ -20,11 +20,20 @@ async function showCameraModal() {
   activeModal = 'camera';
   startModalTimeout();
   
-  try {
-    // Initialize video stream
-    if (!videoStream) {
-      videoStream = new VideoStream();
+  // If a previous VideoStream instance exists, stop and clean it up before creating a new one.
+  // This prevents orphaned WebRTC sessions from accumulating on the server.
+  if (videoStream) {
+    try {
+      videoStream.stop();
+    } catch (e) {
+      console.warn('Error stopping previous video stream:', e);
     }
+    videoStream = null;
+  }
+  
+  try {
+    // Always create a fresh VideoStream instance after cleaning up any previous one.
+    videoStream = new VideoStream();
     
     // Remove existing iframe if present
     const existingIframe = modal.querySelector('iframe');
@@ -80,12 +89,18 @@ function hideCameraModal() {
   
   bg.classList.remove('visible');
   clearTimeout(cameraModalTimeout);
+  cameraModalTimeout = null;
   activeModal = null;
   clearModalTimeout();
   
-  // Stop video stream
+  // Stop video stream and reset the instance to prevent stale connections
   if (videoStream) {
-    videoStream.stop();
+    try {
+      videoStream.stop();
+    } catch (e) {
+      console.warn('Error stopping video stream:', e);
+    }
+    videoStream = null;
   }
   
   // Remove video element
