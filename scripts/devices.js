@@ -3,7 +3,7 @@ if (!window.devicePendingCommands) {
   window.devicePendingCommands = new Map();
 }
 
-function openDeviceModal(label, deviceId, showBack = false) {
+async function openDeviceModal(label, deviceId, showBack = false) {
   if (!livingRoomDevices[deviceId]) {
     showModalContent(`<div class="modal-header">${label}</div>
       <div class="device-coming-soon">Controls for <b>${label}</b> (ID: ${deviceId}) coming soon...</div>`, showBack, '.side-btn[title="Lights"]');
@@ -13,16 +13,13 @@ function openDeviceModal(label, deviceId, showBack = false) {
   showModalContent(`<div class="modal-header"><h2>${label}</h2></div>
     <div id='deviceControls' class="control-panel with-arches" data-device-id="${deviceId}"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
   
-  if (window.deviceStateManager) {
-    window.deviceStateManager.refreshDevice(deviceId)
-      .then(() => {
-        const attrs = window.deviceStateManager.getDevice(deviceId) || {};
-        renderDeviceControls({ attributes: attrs, capabilities: livingRoomDevices[deviceId]?.capabilities || [] }, deviceId, showBack);
-      })
-      .catch(() => {
-        document.getElementById('deviceControls').innerHTML = `<div class="device-error-container"><span class="device-error-title">Failed to load device state.</span></div>`;
-      });
+  // Initialize from current cache; refresh once if stale/missing
+  let attrs = window.deviceStateManager.getDevice(deviceId) || {};
+  if (!attrs || Object.keys(attrs).length === 0 || window.deviceStateManager.isStale(deviceId)){
+    await window.deviceStateManager.refreshDevice(deviceId);
+    attrs = window.deviceStateManager.getDevice(deviceId) || {};
   }
+  renderDeviceControls({ attributes: attrs, capabilities: livingRoomDevices[deviceId]?.capabilities || [] }, deviceId, showBack);
 }
 
 function renderDeviceControls(device, deviceId, showBack = false) {
@@ -135,7 +132,7 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   for (let i = 0; i < ringButtons.length; i++) {
     const t = i / steps; const deg = startDeg + t * (endDeg - startDeg);
     const b = ringButtons[i];
-    html += `<button class="bubble-btn global-btn ${b.cls}" style="transform: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${b.onclick}">
+    html += `<button class="bubble-btn global-btn ${b.cls}" style="--pose: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${b.onclick}">
       <span class="icon">${b.icon}</span>
       <span class="label">${b.label}</span>
     </button>`;

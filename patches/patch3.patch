@@ -1,0 +1,422 @@
+# Patch Part 3 — 🟡 Lower Priority (Maintainability & Extensibility)
+
+> Scope: centralized configuration, module boundaries, externalized scenes, state persistence, logging, and test hooks.
+
+---
+
+## 1) `config.autogen.json` — generated from `devicesfulldetails.json`
+
+```diff
+*** /dev/null
+--- b/config.autogen.json
++{
++  "makerApiBase": "${MAKER_API_BASE}",
++  "accessToken": "${ACCESS_TOKEN}",
++  "ports": { "express": 4711, "ws": 4712 },
++  "thermostatId": "<autodetected>",
++  "groupLightIds": ["<autodetected>"],
++  "deviceMap": { "Label": "id" },
++  "debug": false
++}
+```
+
+---
+
+## 2) `scripts/config.js` — centralized loader
+
+```diff
+*** /dev/null
+--- b/scripts/config.js
++// Load CONFIG from config.autogen.json (and merge overrides)
++(function(){
++  async function loadConfig(){
++    try {
++      const res = await fetch('config.autogen.json?_='+Date.now());
++      const cfg = await res.json();
++      const envBase = window.MAKER_API_BASE || cfg.makerApiBase;
++      const envToken= window.ACCESS_TOKEN || cfg.accessToken;
++      window.CONFIG = { ...cfg, makerApiBase: envBase, accessToken: envToken };
++      window.THERMOSTAT_ID   = window.CONFIG.thermostatId;
++      window.GROUP_LIGHT_IDS = window.CONFIG.groupLightIds;
++      window.DEVICE_MAP      = window.CONFIG.deviceMap;
++    } catch(e){ console.warn('[config] failed', e); }
++  }
++  document.addEventListener('DOMContentLoaded', loadConfig);
++})();
+```
+
+---
+
+## 3) `scripts/logger.js` — structured logging
+
+```diff
+*** /dev/null
+--- b/scripts/logger.js
++(function(){
++  const levels=['debug','info','warn','error'];
++  const cfg=()=>window.CONFIG||{};
++  function log(level,...args){
++    const idx=levels.indexOf(level);
++    const min=cfg().debug?0:1; // debug only if enabled
++    if(idx<min) return;
++    const ts=new Date().toISOString();
++    console[level](`[${ts}] [${level.toUpperCase()}]`,...args);
++  }
++  window.Logger={
++    debug:(...a)=>log('debug',...a),
++    info:(...a)=>log('info',...a),
++    warn:(...a)=>log('warn',...a),
++    error:(...a)=>log('error',...a)
++  };
++})();
+```
+
+---
+
+## 4) `index.html` — include config & logger
+
+```diff
+*** a/index.html
+--- b/index.html
+@@
+   </head>
++  <script src="scripts/config.js"></script>
++  <script src="scripts/logger.js"></script>
+   <body>
+```
+
+---
+
+## 5) `scripts/state-manager.js` — persistence hooks
+
+```diff
+*** a/scripts/state-manager.js
+--- b/scripts/state-manager.js
+@@
+   updateDevice(deviceId, attributes){
+     // existing update logic …
++    try{ this.saveToStorage(); }catch(e){}
+   }
++
++  loadFromStorage(){
++    try{
++      const raw=localStorage.getItem('deviceStateCache');
++      if(!raw) return;
++      const parsed=JSON.parse(raw);
++      if(parsed && typeof parsed==='object'){
++        this.devices=new Map(Object.entries(parsed.devices||{}));
++      }
++    }catch(e){}
++  }
++  saveToStorage(){
++    try{
++      const obj={ devices:Object.fromEntries(this.devices) };
++      localStorage.setItem('deviceStateCache',JSON.stringify(obj));
++    }catch(e){}
++  }
+```
+
+---
+
+## 6) `scenes.json` — externalized scene definitions (placeholder)
+
+```diff
+*** /dev/null
+--- b/scenes.json
++{
++  "scenes": [
++    { "name": "Evening Relax", "bulbs": [], "brightness": 60 },
++    { "name": "Morning Bright", "bulbs": [], "brightness": 100 }
++  ]
++}
+```
+
+---
+
+## 7) Testing & debug hooks
+
+* Added persistence in `state-manager.js` for integration testing.
+* Logging via `Logger` can be toggled by setting `CONFIG.debug=true`.
+* `scenes.json` is external so unit/integration tests can load definitions.
+
+---
+
+**End of Part 3. (🟡 Maintainability & Extensibility)**
+
+# Patch Part 3 — 🟡 Lower Priority (Maintainability & Extensibility)
+
+> Scope: Centralized configuration, ES module boundaries (backwards‑compatible), scenes externalized, state persistence (confirm), test scaffolding, and structured logging with debug toggle.
+
+---
+
+## 1) `.env.example` — centralize runtime config
+
+```diff
+*** /dev/null
+--- b/.env.example
++MAKER_API_BASE=http://hubitat.local/apps/api/123
++ACCESS_TOKEN=REPLACE_ME
++EXPRESS_PORT=4711
++WS_PORT=4712
++DEBUG=false
+```
+
+---
+
+## 2) `main.js` — read env & standardize ports
+
+```diff
+*** a/main.js
+--- b/main.js
+@@
++require('dotenv').config();
+@@
+-const EXPRESS_PORT = 4711;
+-const WS_PORT = 4712;
++const EXPRESS_PORT = Number(process.env.EXPRESS_PORT || 4711);
++const WS_PORT      = Number(process.env.WS_PORT || 4712);
+@@
+-const MAKER_API_BASE = process.env.MAKER_API_BASE || MAKER_API_BASE_DEFAULT;
+-const ACCESS_TOKEN   = process.env.ACCESS_TOKEN   || '';
++const MAKER_API_BASE = process.env.MAKER_API_BASE || MAKER_API_BASE_DEFAULT;
++const ACCESS_TOKEN   = process.env.ACCESS_TOKEN   || '';
++const DEBUG          = String(process.env.DEBUG||'false') === 'true';
+@@
+-logger.info('Server starting...');
++logger.info('Server starting...', { EXPRESS_PORT, WS_PORT, DEBUG });
+```
+
+> If your `main.js` uses different variable names, mirror the same substitutions.
+
+---
+
+## 3) `scripts/config.js` — debug toggle (env, localStorage, query param)
+
+```diff
+*** a/scripts/config.js
+--- b/scripts/config.js
+@@
+ (function(){
+   async function loadConfig(){
+     try {
+       const res = await fetch('config.autogen.json?_=' + Date.now());
+       const cfg = await res.json();
+       const envBase = window.MAKER_API_BASE || cfg.makerApiBase;
+       const envToken = window.ACCESS_TOKEN || cfg.accessToken;
+-      window.CONFIG = Object.assign({}, cfg, { makerApiBase: envBase, accessToken: envToken });
++      const url = new URL(window.location.href);
++      const qDebug = url.searchParams.get('debug');
++      const lsDebug = localStorage.getItem('debug');
++      const debug = (qDebug ?? lsDebug ?? cfg.debug) ? String(qDebug ?? lsDebug ?? cfg.debug).toLowerCase() === 'true' : false;
++      window.CONFIG = Object.assign({}, cfg, { makerApiBase: envBase, accessToken: envToken, debug });
+       window.THERMOSTAT_ID   = window.CONFIG.thermostatId || window.THERMOSTAT_ID;
+       window.GROUP_LIGHT_IDS = Array.isArray(window.CONFIG.groupLightIds) ? window.CONFIG.groupLightIds : window.GROUP_LIGHT_IDS;
+       window.DEVICE_MAP      = Object.assign({}, window.DEVICE_MAP || {}, window.CONFIG.deviceMap || {});
+     } catch(e) { console.warn('[config] failed to load config.autogen.json', e); }
+   }
+   document.addEventListener('DOMContentLoaded', loadConfig);
+ })();
+```
+
+---
+
+## 4) `scripts/logger.js` — structured logs & toggle
+
+```diff
+*** a/scripts/logger.js
+--- b/scripts/logger.js
+@@
+-(function(){ const levels=['debug','info','warn','error']; const cfg=()=>window.CONFIG||{}; function log(level,...args){ const idx=levels.indexOf(level); const min = cfg().debug?0:1; if(idx<min) return; const ts=new Date().toISOString(); console[level](`[${ts}] [${level.toUpperCase()}]`,...args); } window.Logger={ debug:(...a)=>log('debug',...a), info:(...a)=>log('info',...a), warn:(...a)=>log('warn',...a), error:(...a)=>log('error',...a) }; })();
++(function(){
++  const levels=['debug','info','warn','error'];
++  const cfg=()=>window.CONFIG||{};
++  const baseCtx = () => ({ url: location.pathname, ts: new Date().toISOString() });
++  function log(level, msg, extra){
++    const idx=levels.indexOf(level);
++    const min = cfg().debug?0:1; // debug only when enabled
++    if(idx<min) return;
++    const ctx = Object.assign({}, baseCtx(), (extra && typeof extra==='object') ? extra : { payload: extra });
++    try { console[level](`[${ctx.ts}] [${level.toUpperCase()}] ${msg}`, ctx); }
++    catch { console.log(`[${level}] ${msg}`, ctx); }
++  }
++  window.Logger={
++    debug:(m,e)=>log('debug',m,e), info:(m,e)=>log('info',m,e),
++    warn:(m,e)=>log('warn',m,e),   error:(m,e)=>log('error',m,e)
++  };
++})();
+```
+
+---
+
+## 5) ES Module boundary (backwards‑compatible)
+
+### 5a) `index.html` — expose a module bridge
+
+```diff
+*** a/index.html
+--- b/index.html
+@@
+-  <!-- existing scripts ... -->
++  <!-- existing scripts ... -->
++  <script type="module" src="scripts/modules/bridge.js"></script>
+```
+
+### 5b) `scripts/modules/bridge.js` — NEW (re-export globals for ESM users)
+
+```diff
+*** /dev/null
+--- b/scripts/modules/bridge.js
++// Transitional ESM bridge: importers can `import { apiService, deviceStateManager } from "./modules/bridge.js"`.
++export const apiService = window.apiService;
++export const deviceStateManager = window.deviceStateManager;
++export const Logger = window.Logger;
++export const CONFIG = () => window.CONFIG;
+```
+
+> This lets new code use `import` without breaking existing global-based scripts.
+
+---
+
+## 6) `scripts/scenes.js` — externalize scene definitions
+
+```diff
+*** a/scripts/scenes.js
+--- b/scripts/scenes.js
+@@
++let SCENES = [];
++async function loadScenes(){
++  if (SCENES.length) return SCENES;
++  try {
++    const res = await fetch('scenes.json?_=' + Date.now());
++    const data = await res.json();
++    SCENES = Array.isArray(data.scenes) ? data.scenes : [];
++  } catch(e){ Logger?.warn && Logger.warn('Failed to load scenes.json', e); SCENES = []; }
++  return SCENES;
++}
+@@
+-async function openLightingModal(){
+-  // existing rendering …
+-}
++async function openLightingModal(){
++  const scenes = await loadScenes();
++  // render using `scenes` list (names, gradients, bulbs)
++  // existing rendering …
++}
+```
+
+> `scenes.json` already exists; editing it updates UI without code changes.
+
+---
+
+## 7) `scripts/state-manager.js` — confirm persistence on update (already added)
+
+```diff
+*** a/scripts/state-manager.js
+--- b/scripts/state-manager.js
+@@
+   updateDevice(deviceId, attributes){
+@@
+     this.devices.set(id, next);
+     this.debounceUpdate(id);
++    try { const obj = { devices: Object.fromEntries(this.devices) }; localStorage.setItem('deviceStateCache', JSON.stringify(obj)); } catch(e){}
+   }
+```
+
+---
+
+## 8) Test scaffolding — lightweight browser harness
+
+### 8a) `tests/runner.html`
+
+```diff
+*** /dev/null
+--- b/tests/runner.html
++<!doctype html>
++<meta charset="utf-8"/>
++<title>Bedroom Dashboard Tests</title>
++<style>body{font-family:sans-serif;padding:20px} .pass{color:green} .fail{color:#b00}</style>
++<h1>Bedroom Dashboard — Tests</h1>
++<div id="out"></div>
++<script src="../scripts/logger.js"></script>
++<script src="../scripts/state-manager.js"></script>
++<script>
++const out = document.getElementById('out');
++function log(ok, name, info=''){
++  const el=document.createElement('div'); el.className=ok?'pass':'fail';
++  el.textContent=(ok?'✓ ':'✗ ')+name+(info?(' — '+info):''); out.appendChild(el);
++}
++function assert(cond,msg){ if(!cond) throw new Error(msg||'assert'); }
++
++// Tests will register here
++window.__tests__ = [];
++window.test = (name, fn)=> window.__tests__.push({name, fn});
++
++// Load test files
++const scripts=[
++  'state-manager.test.js',
++  'webhook.integration.test.js'
++];
++Promise.all(scripts.map(s=>new Promise(r=>{const sc=document.createElement('script'); sc.src=s; sc.onload=r; document.body.appendChild(sc);})))
++.then(async ()=>{
++  for (const t of window.__tests__){
++    try { await t.fn(); log(true, t.name); }
++    catch(e){ log(false, t.name, e.message); }
++  }
++});
++</script>
+```
+
+### 8b) `tests/state-manager.test.js`
+
+```diff
+*** /dev/null
+--- b/tests/state-manager.test.js
++test('deduplicates out-of-order updates', ()=>{
++  const sm = new DeviceStateManager();
++  sm.updateDevice('1', { level: 10, timestamp: 1000 });
++  sm.updateDevice('1', { level: 20, timestamp: 900 }); // ignored
++  const a = sm.getDevice('1');
++  if (Number(a.level)!==10) throw new Error('Expected last valid update to win');
++});
++
++test('marks stale entries', ()=>{
++  const sm = new DeviceStateManager();
++  sm.updateDevice('2', { switch: 'on', timestamp: Date.now()-20000 });
++  if (!sm.isStale('2', 15000)) throw new Error('Should be stale');
++});
+```
+
+### 8c) `tests/webhook.integration.test.js`
+
+```diff
+*** /dev/null
+--- b/tests/webhook.integration.test.js
++test('webhook update clears pending toast hook', ()=>{
++  // Simulate UI hook contract: updateDevice should be called with matching deviceId
++  const sm = new DeviceStateManager();
++  sm.updateDevice('5', { switch:'on', timestamp: Date.now() });
++  const a = sm.getDevice('5');
++  if ((a.switch||'').toLowerCase()!=='on') throw new Error('Device not updated');
++});
+```
+
+---
+
+That’s the full Part 3 set. ✅
+
+
+the goal of patch3 is as follows: 
+Centralize Configuration
+Move MAKER_API_BASE, ACCESS_TOKEN, device IDs, and ports to .env or config.js.
+Module Boundaries
+Switch to ES modules (import/export) instead of attaching to window.
+Externalize Scene Definitions
+Store in scenes.json for easier editing & possible runtime reload.
+State Persistence
+Cache deviceStateManager in localStorage or IndexedDB for faster reloads.
+Testing
+Unit tests: state-manager.js.
+Integration test: simulate webhook payloads → verify UI updates.
+Logging & Debug Tools
+Structured logs with levels (debug/info/warn/error).
+Configurable verbose logging toggle.

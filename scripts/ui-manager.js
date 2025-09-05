@@ -29,6 +29,21 @@ class UIManager {
       this.unsubscribeFromState = window.deviceStateManager.subscribe(
         this.handleDeviceStateChange.bind(this)
       );
+      
+      // Initialize visual state system
+      if (window.deviceStateManager.initVisualStateSubscriptions) {
+        window.deviceStateManager.initVisualStateSubscriptions();
+      }
+    } else {
+      // Wait for state manager to be ready
+      window.addEventListener('deviceStateManager:ready', () => {
+        this.unsubscribeFromState = window.deviceStateManager.subscribe(
+          this.handleDeviceStateChange.bind(this)
+        );
+        if (window.deviceStateManager.initVisualStateSubscriptions) {
+          window.deviceStateManager.initVisualStateSubscriptions();
+        }
+      }, { once: true });
     }
   }
 
@@ -136,6 +151,9 @@ class UIManager {
       case 'showThermostatModal':
         this.showThermostatModal();
         break;
+      case 'showVacuumModal':
+        this.showModal('Vacuum Controls', '<div class="coming-soon">Vacuum controls coming soon...</div>');
+        break;
     }
   }
 
@@ -241,7 +259,7 @@ class UIManager {
       
       // If not in state manager or stale, fetch from API
       if (!device || !window.deviceStateManager.isDeviceOnline(deviceId)) {
-        device = await window.apiService.getDeviceStatus(deviceId);
+        device = await window.apiService.getDevice(deviceId);
       }
       
       this.renderDeviceControls(device, deviceId, showBack);
@@ -254,6 +272,17 @@ class UIManager {
   refreshDeviceControls(deviceId) {
     // Refresh the device controls display
     this.loadDeviceControls(deviceId, true);
+  }
+
+  // Method for state manager to call when updating open device modal
+  renderDeviceControls(deviceId, state) {
+    // If we have a device modal open for this device, refresh it
+    const currentDeviceId = this.getCurrentModalDeviceId();
+    if (currentDeviceId === deviceId) {
+      this.refreshDeviceControls(deviceId);
+      return true; // Indicate we handled it
+    }
+    return false; // Indicate we didn't handle it
   }
 
   renderDeviceControls(device, deviceId, showBack) {
@@ -283,7 +312,7 @@ class UIManager {
     let html = `<div class="bubble-ring global-ring-top" style="--radius:180px;">`;
     ring.forEach((b,i)=>{
       const deg=start+(i/steps)*(end-start);
-      html+=`<button class="bubble-btn global-btn ${b.cls}" style="transform:translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1*var(--radius))) rotate(${-deg}deg);" onclick=\"${b.cmd}\"><span class='icon'>${b.icon}</span><span class='label'>${b.lbl}</span></button>`;
+      html+=`<button class="bubble-btn global-btn ${b.cls}" style="--pose:translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1*var(--radius))) rotate(${-deg}deg);" onclick=\"${b.cmd}\"><span class='icon'>${b.icon}</span><span class='label'>${b.lbl}</span></button>`;
     });
     html+='</div><div class="controls-group">';
 
@@ -393,7 +422,7 @@ class UIManager {
       this.refreshAndRenderThermostat(deviceId).catch(()=>{});
     } else {
       // Fallback to API if state manager is not available
-      window.apiService.getDeviceStatus(deviceId).then(dev => this.renderThermostat(dev)).catch(()=>{});
+              window.apiService.getDevice(deviceId).then(dev => this.renderThermostat(dev)).catch(()=>{});
     }
 
     // Wire buttons
@@ -561,14 +590,14 @@ class UIManager {
       const cool = Math.round(heat + sep);
       await window.apiService.sendDeviceCommand(deviceId, 'setHeatCoolSetpoint', `${heat},${cool}`);
     }
-    const updated = await window.apiService.getDeviceStatus(deviceId);
+    const updated = await window.apiService.getDevice(deviceId);
     this.renderThermostat(updated);
     this._thermoPendingValue = null;
   }
 
   async nudgeSetpoint(deviceId, delta){
     // Decide which setpoint to change based on current mode
-    const dev = await window.apiService.getDeviceStatus(deviceId);
+    const dev = await window.apiService.getDevice(deviceId);
     const attrs = dev.attributes || {};
     const getAttr = (name) => Array.isArray(attrs) ? (attrs.find(a => a.name === name)?.currentValue) : attrs[name];
     const mode = (getAttr('thermostatMode') || 'off').toString();
@@ -586,24 +615,24 @@ class UIManager {
       const heat = Math.round(parseFloat(getAttr('heatingSetpoint') ?? 68)) + delta;
       await window.apiService.sendDeviceCommand(deviceId, 'setHeatCoolSetpoint', `${heat},${cool}`);
     }
-    const updated = await window.apiService.getDeviceStatus(deviceId);
+    const updated = await window.apiService.getDevice(deviceId);
     this.renderThermostat(updated);
   }
 
   async cycleThermostatMode(deviceId){
-    const dev = await window.apiService.getDeviceStatus(deviceId);
+    const dev = await window.apiService.getDevice(deviceId);
     const modes = ['off','heat','cool','auto'];
     const attrs = dev.attributes || {};
     const current = (Array.isArray(attrs) ? (attrs.find(a=>a.name==='thermostatMode')?.currentValue) : attrs.thermostatMode) || 'off';
     const idx = modes.indexOf(current);
     const next = modes[(idx+1)%modes.length];
     await window.apiService.sendDeviceCommand(deviceId, next);
-    const updated = await window.apiService.getDeviceStatus(deviceId);
+    const updated = await window.apiService.getDevice(deviceId);
     this.renderThermostat(updated);
   }
 
   async cycleThermostatFan(deviceId){
-    const dev = await window.apiService.getDeviceStatus(deviceId);
+    const dev = await window.apiService.getDevice(deviceId);
     const attrs = dev.attributes || {};
     const getAttr = (name) => Array.isArray(attrs) ? (attrs.find(a => a.name===name)?.currentValue) : attrs[name];
 
@@ -621,7 +650,7 @@ class UIManager {
 
     // Send GET to Hubitat
     await window.apiService.sendDeviceCommand(deviceId, 'setThermostatFanMode', next);
-    const updated = await window.apiService.getDeviceStatus(deviceId);
+    const updated = await window.apiService.getDevice(deviceId);
     this.renderThermostat(updated);
   }
 
@@ -710,6 +739,11 @@ class UIManager {
 // Initialize UI Manager
 const uiManager = new UIManager();
 window.uiManager = uiManager;
+
+// Global function for state manager to call
+window.renderDeviceControls = (deviceId, state) => {
+  return uiManager.renderDeviceControls(deviceId, state);
+};
 
 // Load saved theme
 document.addEventListener('DOMContentLoaded', () => {

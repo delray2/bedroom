@@ -11,6 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="video-stream.js"></script>
   <link rel="stylesheet" href="styles/main.css">
+  <!-- Unified API service -->
+  <script src="scripts/api.js"></script>
 </head>
 <body>
   <div class="blob1 blob"></div>
@@ -50,6 +52,7 @@
       <button class="side-btn" title="Camera" aria-label="Camera" data-action="showCameraModal">📷</button>
       <button class="side-btn" title="Thermostat" aria-label="Thermostat" data-action="showThermostatModal">🌡️</button>
       <button class="side-btn" title="Music" aria-label="Music" data-action="showMusicModal">🎵</button>
+      <button class="side-btn" title="Vacuum" aria-label="Vacuum" data-action="showVacuumModal">🤖</button>
       <!-- Theme toggle button -->
       <button class="side-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">🌙</button>
     </div>
@@ -72,7 +75,7 @@
     </div>
   </div>
   <!-- External JavaScript files -->
-  <script src="scripts/state-manager.js"></script>
+  <script src="statemanager/state-manager.js"></script>
   <script src="scripts/main.js"></script>
   <script src="scripts/modal.js"></script>
   <script src="scripts/ui.js"></script>

@@ -18,7 +18,14 @@ async function showCameraModal() {
   bg.classList.add('visible');
   console.log('Camera modal background displayed');
   activeModal = 'camera';
+  
+  // Start the unified modal timeout system
   startModalTimeout();
+  startActivityMonitoring();
+  
+  // Disable websocket listening during camera modal timeout
+  // (but allow Reolink messages to still interrupt)
+  disableWebSocketListening();
   
   // If a previous VideoStream instance exists, stop and clean it up before creating a new one.
   // This prevents orphaned WebRTC sessions from accumulating on the server.
@@ -78,9 +85,8 @@ async function showCameraModal() {
     modal.insertBefore(iframe, modal.querySelector('#closeCameraModal'));
   }
   
-  // Auto-hide after 30 seconds
-  clearTimeout(cameraModalTimeout);
-  cameraModalTimeout = setTimeout(hideCameraModal, 30000);
+  // Note: Auto-hide is now handled by the unified modal timeout system
+  // No need for separate camera timeout
 }
 
 function hideCameraModal() {
@@ -91,7 +97,13 @@ function hideCameraModal() {
   clearTimeout(cameraModalTimeout);
   cameraModalTimeout = null;
   activeModal = null;
+  
+  // Clear the unified modal timeout system
   clearModalTimeout();
+  stopActivityMonitoring();
+  
+  // Re-enable websocket listening when camera modal closes
+  enableWebSocketListening();
   
   // Stop video stream and reset the instance to prevent stale connections
   if (videoStream) {

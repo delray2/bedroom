@@ -1,8 +1,24 @@
+// Comprehensive Modal Management System with Activity-Based Timeouts
 // DEBUG: Log modal open/close and fallback
 function debugLog(msg) { try { console.log('[MODAL DEBUG]', msg); } catch(e){} }
 
 // Modal animation from trigger button
 let modalTriggerRect = null;
+
+// Global Modal Management Variables
+let activeModal = null;
+let modalTimeout = null;
+let activityTimeout = null;
+let isWebSocketListening = true;
+let lastActivityTime = Date.now();
+const MODAL_TIMEOUT = 30000; // 30 seconds
+const ACTIVITY_CHECK_INTERVAL = 1000; // Check for activity every second
+const historyStack = [];
+
+// Activity detection variables
+let lastMouseX = 0;
+let lastMouseY = 0;
+let lastTouchTime = 0;
 
 function showModalBg(triggerSelector) {
   debugLog('showModalBg called with triggerSelector: ' + triggerSelector);
@@ -76,40 +92,90 @@ window.showModal = function(html, showBack = false) {
 function showModalContent(html, showBack = false, triggerSelector = null) {
   debugLog('showModalContent called, showBack: ' + showBack + ', triggerSelector: ' + triggerSelector);
   
-  // Set the HTML directly without wrapping
-  document.getElementById('modalBody').innerHTML = html;
+  const body = document.getElementById('modalBody');
+  // Push current snapshot if replacing content and Back requested
+  const current = body.innerHTML;
+  if (activeModal === 'main' && current && showBack){
+    historyStack.push(current);
+  }
+  body.innerHTML = html;
   
   document.getElementById('backModal').style.display = showBack ? 'block' : 'none';
   showModalBg(triggerSelector);
   activeModal = 'main';
   startModalTimeout();
+  startActivityMonitoring();
 }
 
 function closeModal() {
+  clearModalTimeout();
+  stopActivityMonitoring();
+  historyStack.length = 0;
   hideModalBg();
   activeModal = null;
-  clearModalTimeout();
+  // Re-enable websocket listening when closing non-camera modals
+  if (activeModal !== 'camera') {
+    enableWebSocketListening();
+  }
 }
 
-document.getElementById('closeModal').onclick = closeModal;
-document.getElementById('modalBg').onclick = function(e) {
-  if (e.target === this) closeModal();
-};
-document.getElementById('backModal').onclick = function() {
-  if (window.uiManager) {
-    window.uiManager.showBubbleChartModal();
+// Activity Detection Functions
+function startActivityMonitoring() {
+  stopActivityMonitoring();
+  lastActivityTime = Date.now();
+  
+  // Monitor for activity
+  activityTimeout = setInterval(() => {
+    const now = Date.now();
+    const timeSinceActivity = now - lastActivityTime;
+    
+    // If no activity for 30 seconds, close modal
+    if (timeSinceActivity >= MODAL_TIMEOUT && activeModal) {
+      debugLog('No activity detected for 30 seconds, closing modal');
+      closeActiveModal();
+    }
+  }, ACTIVITY_CHECK_INTERVAL);
+  
+  debugLog('Activity monitoring started');
+}
+
+function stopActivityMonitoring() {
+  if (activityTimeout) {
+    clearInterval(activityTimeout);
+    activityTimeout = null;
+    debugLog('Activity monitoring stopped');
   }
-};
+}
 
-// --- Global Modal Management ---
-let activeModal = null;
-let modalTimeout = null;
-const MODAL_TIMEOUT = 30000; // 30 seconds
+function recordActivity() {
+  lastActivityTime = Date.now();
+  debugLog('Activity recorded at: ' + new Date(lastActivityTime).toLocaleTimeString());
+}
 
+// WebSocket Management
+function disableWebSocketListening() {
+  isWebSocketListening = false;
+  debugLog('WebSocket listening disabled');
+}
+
+function enableWebSocketListening() {
+  isWebSocketListening = true;
+  debugLog('WebSocket listening enabled');
+}
+
+function isWebSocketListeningEnabled() {
+  return isWebSocketListening;
+}
+
+// Expose for use by other modules
+window.isWebSocketListeningEnabled = isWebSocketListeningEnabled;
+
+// Modal Timeout Management
 function startModalTimeout() {
   clearModalTimeout();
   modalTimeout = setTimeout(() => {
     if (activeModal) {
+      debugLog('Modal timeout reached, closing modal');
       closeActiveModal();
     }
   }, MODAL_TIMEOUT);
@@ -124,15 +190,76 @@ function clearModalTimeout() {
 
 function closeActiveModal() {
   if (activeModal === 'camera') {
+    // For camera modal, don't interrupt websocket during timeout
+    // but still close the modal
     hideCameraModal();
   } else if (activeModal === 'main') {
     closeModal();
   }
   activeModal = null;
   clearModalTimeout();
+  stopActivityMonitoring();
 }
 
-// Event listeners for modal system
+// Event Listeners for Activity Detection
+function setupActivityListeners() {
+  // Mouse movement
+  document.addEventListener('mousemove', function(e) {
+    const currentTime = Date.now();
+    // Only record activity if mouse actually moved
+    if (Math.abs(e.clientX - lastMouseX) > 5 || Math.abs(e.clientY - lastMouseY) > 5) {
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      recordActivity();
+    }
+  });
+  
+  // Touch events
+  document.addEventListener('touchstart', function(e) {
+    const currentTime = Date.now();
+    // Throttle touch events to avoid spam
+    if (currentTime - lastTouchTime > 100) {
+      lastTouchTime = currentTime;
+      recordActivity();
+    }
+  });
+  
+  document.addEventListener('touchend', function(e) {
+    const currentTime = Date.now();
+    if (currentTime - lastTouchTime > 100) {
+      lastTouchTime = currentTime;
+      recordActivity();
+    }
+  });
+  
+  // Click events
+  document.addEventListener('click', recordActivity);
+  
+  // Key events
+  document.addEventListener('keydown', recordActivity);
+  
+  debugLog('Activity listeners set up');
+}
+
+// Modal Event Handlers
+document.getElementById('closeModal').onclick = closeModal;
+document.getElementById('modalBg').onclick = function(e) {
+  if (e.target === this) closeModal();
+};
+document.getElementById('backModal').onclick = function() {
+  const body = document.getElementById('modalBody');
+  const prev = historyStack.pop();
+  if (prev){
+    body.innerHTML = prev;
+    document.getElementById('backModal').style.display = historyStack.length ? 'block' : 'none';
+  } else {
+    if (window.uiManager) {
+      window.uiManager.showBubbleChartModal();
+    }
+  }
+};
+
+// Initialize modal system
 document.addEventListener('DOMContentLoaded', function() {
   // Ensure modal elements exist
   const modalBg = document.getElementById('modalBg');
@@ -145,6 +272,9 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
   
+  // Set up activity listeners
+  setupActivityListeners();
+  
   // Close modal on escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && activeModal) {
@@ -156,10 +286,11 @@ document.addEventListener('DOMContentLoaded', function() {
   modalContent.addEventListener('click', function(e) {
     e.stopPropagation();
   });
+  
+  debugLog('Modal system initialized');
 });
 
-// DON'T touch camera modal: leave its code/ids/handlers alone.
-
+// Legacy compatibility functions (keeping for existing code)
 let modalStack = []; // keeps HTML strings + title/meta
 let activeModalType = null; // 'ring' | 'controls' | 'camera' | null
 
@@ -172,19 +303,14 @@ function openModal({ html, showBack=false, replace=true, timeoutMs=30000, type='
   document.getElementById('backModal').classList.toggle('is-hidden', !showBack && modalStack.length === 0);
   document.getElementById('modalBg').classList.add('visible');
   activeModalType = type;
-  startModalTimeout(timeoutMs);
+  activeModal = 'main';
+  startModalTimeout();
+  startActivityMonitoring();
 }
 
 function setModalContent(html) {
   const body = document.getElementById('modalBody');
   body.innerHTML = html;
-}
-
-function closeModal() {
-  clearModalTimeout();
-  modalStack = [];
-  activeModalType = null;
-  hideModalBg();
 }
 
 function backModal() {
@@ -194,22 +320,12 @@ function backModal() {
   setModalContent(prev.html);
   activeModalType = prev.type;
   document.getElementById('backModal').classList.toggle('is-hidden', modalStack.length === 0);
-  startModalTimeout(30000);
+  startModalTimeout();
+  startActivityMonitoring();
 }
 
-let modalTimeoutHandle = null;
-function startModalTimeout(ms) {
-  clearModalTimeout();
-  if (!ms) return;
-  modalTimeoutHandle = setTimeout(closeModal, ms);
-}
-function clearModalTimeout() {
-  if (modalTimeoutHandle) clearTimeout(modalTimeoutHandle);
-  modalTimeoutHandle = null;
-}
-
-// Wire up
+// Wire up legacy event handlers
 document.getElementById('closeModal').addEventListener('click', closeModal);
 document.getElementById('backModal').addEventListener('click', backModal);
 document.getElementById('modalBg').addEventListener('click', (e)=>{ if(e.target.id==='modalBg') closeModal(); });
-document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); }); 
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });

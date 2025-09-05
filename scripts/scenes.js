@@ -1,5 +1,5 @@
 // Enhanced Scene System with Individual Bulb Control and Calculated Color Palettes
-const lifxScenes = [
+window.lifxScenes = [
   {
     name: 'White',
     gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f7f7f7 35%, #ebebeb 70%, #dcdcdc 100%)',
@@ -155,6 +155,15 @@ window.applyLifxScene = async function(sceneName) {
   }
   
   try {
+    // Update paddle switch with scene gradient
+    const paddleSwitch = document.getElementById('paddleSwitch');
+    if (paddleSwitch) {
+      paddleSwitch.style.background = scene.gradient;
+      paddleSwitch.style.color = '#222';
+      paddleSwitch.classList.add('on');
+      paddleSwitch.classList.remove('off');
+    }
+    
     // Create gradient from scene palette for WLED
     const gradientColors = scene.bulbs.map(bulb => bulb.color);
     const gradientString = gradientColors.join(',');
@@ -211,6 +220,9 @@ window.applyLifxScene = async function(sceneName) {
     
     // Wait for all promises to complete with 1-second duration for smooth transitions
     await Promise.all([...bulbPromises.flat(), ...wledPromises]);
+    
+    // Store the applied scene for later reference
+    window.currentAppliedScene = sceneName;
     
     showToast(`Scene "${sceneName}" applied successfully!`, 'success');
     
@@ -376,7 +388,7 @@ function showGlobalControlsModal() {
   for (let i = 0; i < buttons.length; i++) {
     const t = i / steps;
     const deg = startDeg + t * (endDeg - startDeg);
-    html += `<button class="bubble-btn global-btn ${buttons[i].cls}" style="transform: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${buttons[i].onclick}">
+    html += `<button class="bubble-btn global-btn ${buttons[i].cls}" style="--pose: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${buttons[i].onclick}">
       <span class="icon">${buttons[i].icon}</span>
       <span class="label">${buttons[i].label}</span>
     </button>`;
@@ -448,12 +460,24 @@ function showGlobalControlsModal() {
 
   window.showModal(html, true);
 
-  // Setup kawaii sliders
-  setTimeout(() => {
+  // Setup kawaii sliders and fetch current state
+  setTimeout(async () => {
     try {
       setupKawaiiSlider('bgHue', 'progressHue', 'valHue', 'setHue');
       setupKawaiiSlider('bgLvl', 'progressLvl', 'valLvl', 'setLevel');
       setupKawaiiSlider('bgSat', 'progressSat', 'valSat', 'setSaturation');
+      
+      // Fetch and display current device state
+      if (window.apiService) {
+        try {
+          const device = await window.apiService.getDevice('457'); // BedroomLifxGOG
+          if (device) {
+            renderGlobalControls(device);
+          }
+        } catch (error) {
+          console.error('Failed to fetch device state for global controls:', error);
+        }
+      }
     } catch (error) {
       console.error('Error setting up kawaii sliders:', error);
     }
@@ -626,31 +650,67 @@ function renderGlobalControls(device) {
   const progressHue = document.getElementById('progressHue');
   const progressSat = document.getElementById('progressSat');
   
-  // Update text values
-  if (valLvl) valLvl.textContent = `${Math.max(1, level)}%`;
-  if (valHue) valHue.textContent = `${hue}`;
-  if (valSat) valSat.textContent = `${sat}`;
+  // Update text values with proper formatting
+  if (valLvl) {
+    valLvl.textContent = `${Math.max(1, Math.round(level))}%`;
+    valLvl.style.color = level > 50 ? '#333333' : '#666666';
+  }
+  if (valHue) {
+    valHue.textContent = `${Math.round(hue)}`;
+    // Update hue color based on current hue value
+    const hueColor = `hsl(${hue}, 100%, 50%)`;
+    valHue.style.color = hueColor;
+  }
+  if (valSat) {
+    valSat.textContent = `${Math.round(sat)}`;
+    valSat.style.color = sat > 50 ? '#ff0000' : '#666666';
+  }
   
   // Update visual progress for kawaii sliders
   if (bgLvl && progressLvl) {
     const length = bgLvl.getTotalLength();
-    const progress = level / 100; // 0 to 1
+    const progress = Math.max(0.01, level / 100); // Ensure minimum progress for visibility
     progressLvl.setAttribute('stroke-dasharray', length);
     progressLvl.setAttribute('stroke-dashoffset', (1 - progress) * length);
   }
   
   if (bgHue && progressHue) {
     const length = bgHue.getTotalLength();
-    const progress = hue / 100; // 0 to 1
+    const progress = Math.max(0.01, hue / 100); // Ensure minimum progress for visibility
     progressHue.setAttribute('stroke-dasharray', length);
     progressHue.setAttribute('stroke-dashoffset', (1 - progress) * length);
   }
   
   if (bgSat && progressSat) {
     const length = bgSat.getTotalLength();
-    const progress = sat / 100; // 0 to 1
+    const progress = Math.max(0.01, sat / 100); // Ensure minimum progress for visibility
     progressSat.setAttribute('stroke-dasharray', length);
     progressSat.setAttribute('stroke-dashoffset', (1 - progress) * length);
+  }
+  
+  // Also update the global power toggle button state
+  const globalPowerBtn = document.querySelector('.global-btn.btn-all-on, .global-btn.btn-all-off');
+  if (globalPowerBtn) {
+    if (isOn) {
+      globalPowerBtn.classList.remove('btn-all-off');
+      globalPowerBtn.classList.add('btn-all-on');
+      globalPowerBtn.querySelector('.icon').textContent = '🔆';
+      globalPowerBtn.querySelector('.label').textContent = 'All On';
+    } else {
+      globalPowerBtn.classList.remove('btn-all-on');
+      globalPowerBtn.classList.add('btn-all-off');
+      globalPowerBtn.querySelector('.icon').textContent = '🌙';
+      globalPowerBtn.querySelector('.label').textContent = 'All Off';
+    }
+  }
+  
+  // Update global controls if they're open
+  if (document.getElementById('modalBg')?.classList.contains('visible')) {
+    const modalBody = document.getElementById('modalBody');
+    if (modalBody && modalBody.textContent.includes('Bright')) {
+      // Global controls modal is open, update the sliders
+      console.log('Updating global controls with current state:', { isOn, level, hue, sat });
+    }
   }
 }
 

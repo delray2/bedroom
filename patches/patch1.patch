@@ -1,0 +1,212 @@
+# Patch Part 1 — 🔴 Reliability & Core Functionality
+
+> Scope: Unify device commands, prevent loops/races, cache-first modal init, context-aware Back button, and WS reliability (reconnect + schema validation).
+
+---
+
+## 1) `index.html` — load `api.js` (new)
+
+```diff
+*** a/index.html
+--- b/index.html
+@@
+   </head>
++  <!-- Unified API service -->
++  <script src="scripts/api.js"></script>
+   <body>
+*** /dev/null
+--- b/scripts/api.js
++// Standardized Hubitat Maker API service (unified commands)
++(function(){
++  const BASE  = () => (window.CONFIG?.makerApiBase || window.MAKER_API_BASE);
++  const TOKEN = () => (window.CONFIG?.accessToken  || window.ACCESS_TOKEN);
++
++  async function httpJson(url, options = {}){
++    const res = await fetch(url, options);
++    if (!res.ok) throw new Error(`HTTP ${res.status}`);
++    try { return await res.json(); } catch { return null; }
++  }
++
++  async function getDevice(deviceId){
++    const url = `${BASE()}/devices/${deviceId}?access_token=${TOKEN()}`;
++    return httpJson(url);
++  }
++
++  async function sendDeviceCommand(deviceId, command, ...args){
++    const encoded = args.filter(v => v != null).map(String).map(encodeURIComponent).join('/');
++    const url = `${BASE()}/devices/${deviceId}/${command}${encoded?`/${encoded}`:''}?access_token=${TOKEN()}`;
++    return httpJson(url, { method: 'POST' });
++  }
++
++  window.apiService = { getDevice, sendDeviceCommand };
++})();
+*** a/scripts/state-manager.js
+--- b/scripts/state-manager.js
+@@
+ class DeviceStateManager {
+-  constructor(){
+-    this.devices = new Map();
+-    this.listeners = new Set();
+-    this.debounceDelay = 50;
+-  }
++  constructor(){
++    this.devices = new Map();
++    this.listeners = new Set();
++    this.debounceDelay = 50;
++    this.lastEventTs = new Map();
++  }
+@@
+-  updateDevice(deviceId, attributes){
+-    const id = String(deviceId);
+-    const prev = this.devices.get(id) || { attributes: {}, lastUpdated: 0 };
+-    const next = { attributes: { ...prev.attributes, ...attributes }, lastUpdated: Date.now() };
+-    this.devices.set(id, next);
+-    this.debounceUpdate(id);
+-  }
++  updateDevice(deviceId, attributes){
++    if (!attributes || typeof attributes !== 'object') return;
++    const id = String(deviceId);
++    const incomingTs = Number(attributes.timestamp || Date.now());
++    const lastTs = this.lastEventTs.get(id) || 0;
++    if (incomingTs <= lastTs) return; // dedupe & order guarantee
++    this.lastEventTs.set(id, incomingTs);
++
++    const prev = this.devices.get(id) || { attributes: {}, lastUpdated: 0 };
++    const { timestamp, ...clean } = attributes;
++    const next = { attributes: { ...prev.attributes, ...clean }, lastUpdated: Date.now() };
++    this.devices.set(id, next);
++    this.debounceUpdate(id);
++  }
+@@
+   getDevice(deviceId){
+     const id = String(deviceId);
+     return (this.devices.get(id) || {}).attributes || {};
+   }
++
++  // Treat values older than maxAge as stale; callers can trigger a single refresh
++  isStale(deviceId, maxAgeMs = 15000){
++    const id = String(deviceId);
++    const last = this.devices.get(id)?.lastUpdated || 0;
++    return (Date.now() - last) > maxAgeMs;
++  }
+@@
+-  async refreshDevice(deviceId){
+-    const res = await window.apiService.getDevice(deviceId);
+-    const attrs = this.normalizeAttributes(res);
+-    this.updateDevice(deviceId, attrs);
+-  }
++  async refreshDevice(deviceId){
++    const res = await window.apiService.getDevice(deviceId);
++    const attrs = this.normalizeAttributes(res);
++    const ts = Date.now();
++    this.updateDevice(deviceId, { ...attrs, timestamp: ts });
++    return attrs;
++  }
+*** a/scripts/devices.js
+--- b/scripts/devices.js
+@@
+-  showModalContent(/* ... */);
+-  await window.deviceStateManager.refreshDevice(id);
+-  const attrs = window.deviceStateManager.getDevice(id) || {};
++  showModalContent(/* ... */);
++  // Initialize from current cache; refresh once if stale/missing
++  let attrs = window.deviceStateManager.getDevice(id) || {};
++  if (!attrs || Object.keys(attrs).length === 0 || window.deviceStateManager.isStale(id)){
++    await window.deviceStateManager.refreshDevice(id);
++    attrs = window.deviceStateManager.getDevice(id) || {};
++  }
+   // ... render controls with attrs
+*** a/scripts/modal.js
+--- b/scripts/modal.js
+@@
+-const MODAL_TIMEOUT = 30000;
++const MODAL_TIMEOUT = 30000;
++const historyStack = [];
+@@
+ function showModalContent(html, showBack){
+   const body = document.getElementById('modalBody');
++  // Push current snapshot if replacing content and Back requested
++  const current = body.innerHTML;
++  if (activeModal === 'main' && current && showBack){
++    historyStack.push(current);
++  }
+   body.innerHTML = html;
+ }
+@@
+ function onBack(){
+-  closeModal();
++  const body = document.getElementById('modalBody');
++  const prev = historyStack.pop();
++  if (prev){
++    body.innerHTML = prev;
++    document.getElementById('backModal').style.display = historyStack.length ? 'block' : 'none';
++  } else {
++    closeModal();
++  }
+ }
+@@
+ function closeModal(){
+   clearModalTimeout();
++  historyStack.length = 0;
+   // existing close logic …
+ }
+*** a/scripts/ui.js
+--- b/scripts/ui.js
+@@
++// Reconnect banner
++let reconnectBanner;
++function ensureReconnectBanner(){
++  if (reconnectBanner) return reconnectBanner;
++  reconnectBanner = document.createElement('div');
++  reconnectBanner.id = 'reconnectBanner';
++  reconnectBanner.textContent = 'Reconnecting…';
++  reconnectBanner.setAttribute('aria-live','polite');
++  reconnectBanner.style.display = 'none';
++  document.body.appendChild(reconnectBanner);
++  return reconnectBanner;
++}
++
++// Message schema validation
++function isValidWsMessage(msg){
++  if (!msg || typeof msg !== 'object') return false;
++  const { type, deviceId, attributes, timestamp } = msg;
++  const validType = typeof type === 'string' && type.length > 0;
++  const hasDevice = (type === 'device_state_update') ? (deviceId !== undefined) : true;
+
++  const hasAttrs  = (type === 'device_state_update') ? (attributes && typeof attributes === 'object') : true;
++  const hasTs     = (timestamp === undefined) || Number.isFinite(Number(timestamp));
++  return validType && hasDevice && hasAttrs && hasTs;
++}
+@@
+ function connectWS(){
+   const ws = new WebSocket(WS_URL);
+   ws.onopen = () => {
++    try { ensureReconnectBanner().style.display = 'none'; } catch(e){}
+   };
+   ws.onmessage = (ev) => {
+     try {
+       const msg = JSON.parse(ev.data);
++      if (!isValidWsMessage(msg)) return;
+       // existing routing …
+     } catch(e) {}
+   };
+   ws.onclose = () => {
+-    setTimeout(connectWS, 1000);
++    scheduleReconnect();
+   };
+ }
++
++let wsReconnectAttempts = 0;
++function scheduleReconnect(){
++  wsReconnectAttempts++;
++  const backoff = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
++  ensureReconnectBanner().style.display = 'block';
++  setTimeout(connectWS, backoff);
++}
+*** a/styles/main.css
+--- b/styles/main.css
+@@
++#reconnectBanner{position:fixed;top:0;left:0;right:0;padding:10px 14px;text-align:center;background:rgba(255,193,7,.95);color:#222;font-weight:600;letter-spacing:.3px;z-index:9999}
+
+# -- end of patch1 --
+

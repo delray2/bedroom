@@ -11,6 +11,7 @@
     "test-webhook": "node test-webhook.js"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "electron": "25.9.8",
     "express": "^4.21.2",
     "ws": "^8.15.1"
@@ -29,8 +30,3 @@
   "author": "Your Name",
   "license": "MIT"
 }
-
-
-
-
-

@@ -262,17 +262,14 @@ body {
   background: rgba(0,0,0,0.15);
   border: none;
   border-radius: 50%;
-  width: 82px;
-  height: 82px;
+  width: 60px;
+  height: 60px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #222;
   backdrop-filter: blur(4px);
   box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-  font-size: 1.5em;
-  transition: box-shadow 180ms ease, outline-color 180ms ease, filter 160ms ease, transform 120ms ease;
-  will-change: box-shadow, filter, transform;
 }
 
 .dark-theme .side-btn {
@@ -339,36 +336,33 @@ body {
 /* Position back and close buttons above modal content */
 .back-modal, .close-modal {
   position: absolute;
-  top: 8px;
-  background: rgba(255,255,255,0.1);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5em;
+  top: -50px;
+  background: rgba(35, 37, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
   color: #fff;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 1001;
 }
 
 .back-modal {
-  left: 8px;
+  left: 0;
+  color: white;
 }
 
 .close-modal {
-  right: 8px;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5em;
-  line-height: 1;
+  right: 0;
+  padding: 8px 12px;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .back-modal:hover, .back-modal:active, .close-modal:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   transform: scale(1.1) translate(-50%,-50%);
 }
 
@@ -392,6 +386,15 @@ body {
   text-align: center;
 }
 
+.back-modal,
+.close-modal {
+  position: absolute; top: 8px;
+  border: 0; border-radius: 8px;
+  padding: 6px 10px; cursor: pointer;
+  z-index: 1000;
+}
+.back-modal { left: 8px; }
+.close-modal { right: 8px; width: 32px; height: 32px; font-size: 20px; line-height: 1; }
 .is-hidden { display: none !important; }
 
 #modalBody {
@@ -414,11 +417,9 @@ body {
 
 
 .bubble-ring {
-  position: absolute; 
-  inset: 0;
+  position: absolute; inset: 0;
   display: block;
   --radius: 220px;
-  --angle-offset: -90deg;
 }
 
 .bubble-btn {
@@ -435,9 +436,10 @@ body {
   color: white;
 }
 .bubble-btn .icon { font-size: 2rem; line-height: 1; }
-.bubble-btn:hover { transform: scale(1.1); }
-.bubble-btn:active { transform: translate(-50%,-50%) scale(1.1); }
+.bubble-btn:hover { transform: scale(1.05); }
+.bubble-btn:active { transform: scale(.97); }
 
+.bubble-ring { --angle-offset: -90deg; }
 .bubble-ring .bubble-btn { top: 50%; left: 50%; transform: translate(-50%,-50%); }
 
 @supports (translate: 0) {
@@ -497,7 +499,7 @@ body {
 }
 
 .scene-button:hover, .scene-button:active {
-  transform: scale(1.1);
+  transform: scale(1.1) translate(-50%,-50%);
 }
 
 .control-button {
@@ -505,7 +507,7 @@ body {
 }
 
 .control-button:hover, .control-button:active {
-  transform: scale(1.1);
+  background: #45a049 !important;
 }
 
 .wled-button {
@@ -529,7 +531,7 @@ body {
 }
 
 .control-button.off:hover, .control-button.off:active {
-  transform: scale(1.1);
+  transform: scale(1.1) translate(-50%,-50%);
 }
 
 #cameraModalBg {
@@ -596,7 +598,7 @@ body {
 }
 
 #closeCameraModal:hover {
- transform: scale(1.1) translate(-50%,-50%);
+  color: #ffd600;
 }
 
 .btn {
@@ -619,8 +621,16 @@ body {
   text-decoration: none;
 }
 
-.btn:hover, .btn:active  {
-  transform: scale(1.1) translate(-50%,-50%);
+.btn:hover {
+  background: #357abd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  background: #2d5aa0;
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .btn:disabled {
@@ -640,10 +650,45 @@ body {
 .btn-info { background: #00bcd4; }
 .btn-info:hover { background: #0097a7; }
 
+.side-btn {
+  width: 82px;
+  height: 82px;
+  font-size: 1.5em;
+  border-radius: 50%;
+}
 
+.close-modal, .back-modal {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: absolute;
+  top: 12px;
+  z-index: 1000;
+}
 
+.back-modal {
+  left: 12px;
+}
 
+.close-modal {
+  right: 12px;
+}
 
+.close-modal:hover, .back-modal:hover {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  transform: none;
+  box-shadow: none;
+}
 
 .button-group {
   display: flex;
@@ -709,23 +754,22 @@ body {
 }
 
 .scene-btn:hover, .scene-btn:active {
-  transform: scale(1.1) translate(-50%,-50%);
+  transform: none;
   box-shadow: none;
 }
 
 .slider-container {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   margin: 8px 0;
 }
 
 .slider-container label {
-  min-width: 90px;
+  min-width: 80px;
   font-size: 0.9em;
   color: #ccc;
-  font-weight: 600;
 }
 
 /* Touch-optimized sliders */
@@ -742,7 +786,7 @@ body {
 }
 
 .slider-value {
-  min-width: 50px;
+  min-width: 40px;
   text-align: right;
   font-size: 0.9em;
   color: #fff;
@@ -1218,6 +1262,18 @@ button:focus-visible, input[type="range"]:focus-visible {
   color: #fff;
 }
 
+/* Increase touch targets and spacing */
+.slider-container {
+  align-items: center;
+  gap: 16px;
+}
+.slider-container label {
+  min-width: 90px;
+  font-weight: 600;
+}
+.slider-value {
+  min-width: 50px;
+}
 
 /* Dark theme slider adjustments */
 .dark-theme .slider-input {
@@ -1241,7 +1297,8 @@ button:focus-visible, input[type="range"]:focus-visible {
 
 /* Generic device tiles: support either .device-tile or [data-device-id] */
 .device-tile,
-[data-device-id]{
+[data-device-id],
+.side-btn{
   transition: box-shadow 180ms ease, outline-color 180ms ease, filter 160ms ease, transform 120ms ease;
   will-change: box-shadow, filter, transform;
 }
@@ -1330,7 +1387,7 @@ button:focus-visible, input[type="range"]:focus-visible {
 .global-ring-top .global-btn.btn-all-off { background: radial-gradient(circle at 30% 30%, rgba(190,190,190,0.20), rgba(0,0,0,0.3)), #232526; }
 .global-ring-top .global-btn.btn-dim { background: radial-gradient(circle at 30% 30%, rgba(74,144,226,0.20), rgba(0,0,0,0.25)), #232526; }
 .global-ring-top .global-btn.btn-bright { background: radial-gradient(circle at 30% 30%, rgba(255,214,0,0.38), rgba(0,0,0,0.25)), #232526; }
-.global-ring-top .global-btn:hover { --hover-scale: 1.06; }
+.global-ring-top .global-btn:hover { transform: translate(-50%,-50%) scale(1.06); }
 
 /* Global Controls - C-Shaped Curved Sliders on Right Side */
 .global-mini-dials {
@@ -2113,6 +2170,21 @@ button:focus-visible, input[type="range"]:focus-visible {
     position: absolute;
 }
 
+.remote-btn {
+    position: relative;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: inherit;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3),
+                0 2px 4px rgba(0,0,0,0.2),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+}
 
 .remote-btn:active {
     transform: translateY(0);
@@ -2121,6 +2193,13 @@ button:focus-visible, input[type="range"]:focus-visible {
                 inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
+.remote-btn .icon-svg:hover {
+    transform: scale(1.1) translate(-50%,-50%);
+}
+
+.remote-btn:hover {
+    transform: scale(1.1) translate(-50%,-50%);
+}
 
 /* D-pad button hover states - combine positioning and scaling */
 .btn-up:hover {
@@ -2244,7 +2323,14 @@ button:active {
   transition: transform 0.1s ease;
 }
 
+/* Specific button types with their own positioning need special handling */
+.bubble-btn:hover {
+  transform: scale(1.05);
+}
 
+.bubble-btn:active {
+  transform: scale(0.97);
+}
 
 /* D-pad buttons need to combine positioning with scaling */
 .btn-up:hover {
@@ -2281,6 +2367,14 @@ button:active {
   transform: scale(0.98);
 }
 
+/* Remote buttons */
+.remote-btn:hover {
+  transform: scale(1.1) translate(-50%,-50%);
+}
+
+.remote-btn:active {
+  transform: scale(0.95);
+}
 
 /* Modal close/back buttons */
 .close-modal:hover,
@@ -2293,10 +2387,21 @@ button:active {
   transform: translateY(0);
 }
 
+/* Scene buttons */
+.scene-btn:hover {
+  transform: scale(1.1) translate(-50%,-50%);
+}
+
+.scene-btn:active {
+  transform: scale(0.95);
+}
 
 /* Control buttons */
 .control-button:hover {
   transform: scale(1.1) translate(-50%,-50%);
+}
+.scene-btn:active {
+  transform: scale(0.95);
 }
 
 .control-button:active {
@@ -2364,122 +2469,3 @@ button {
 }
 
 /* ==== END UNIVERSAL BUTTON STATES ==== */
-
-
-/* === Ring Transform Fix (Option B, v2): variable-driven geometry + safe hover === */
-.bubble-ring .bubble-btn {
-  --pose: translate(-50%,-50%);
-  --hover-scale: 1;
-  transform: var(--pose) scale(var(--hover-scale));
-  will-change: transform;
-}
-.bubble-ring .bubble-btn:is(:hover, :active) {
-  --hover-scale: 1.1;
-  transform: var(--pose) scale(var(--hover-scale)) !important;
-}
-@supports (translate: 0) {
-  .count-3 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/3*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/3*0)));
-  }
-  .count-3 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/3*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/3*1)));
-  }
-  .count-3 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/3*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/3*2)));
-  }
-  .count-4 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/4*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/4*0)));
-  }
-  .count-4 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/4*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/4*1)));
-  }
-  .count-4 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/4*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/4*2)));
-  }
-  .count-4 .i-3 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/4*3))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/4*3)));
-  }
-  .count-5 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/5*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/5*0)));
-  }
-  .count-5 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/5*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/5*1)));
-  }
-  .count-5 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/5*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/5*2)));
-  }
-  .count-5 .i-3 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/5*3))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/5*3)));
-  }
-  .count-5 .i-4 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/5*4))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/5*4)));
-  }
-  .count-6 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*0)));
-  }
-  .count-6 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*1)));
-  }
-  .count-6 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*2)));
-  }
-  .count-6 .i-3 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*3))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*3)));
-  }
-  .count-6 .i-4 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*4))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*4)));
-  }
-  .count-6 .i-5 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/6*5))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/6*5)));
-  }
-  .count-7 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*0)));
-  }
-  .count-7 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*1)));
-  }
-  .count-7 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*2)));
-  }
-  .count-7 .i-3 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*3))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*3)));
-  }
-  .count-7 .i-4 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*4))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*4)));
-  }
-  .count-7 .i-5 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*5))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*5)));
-  }
-  .count-7 .i-6 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/7*6))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/7*6)));
-  }
-  .count-8 .i-0 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*0))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*0)));
-  }
-  .count-8 .i-1 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*1))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*1)));
-  }
-  .count-8 .i-2 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*2))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*2)));
-  }
-  .count-8 .i-3 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*3))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*3)));
-  }
-  .count-8 .i-4 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*4))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*4)));
-  }
-  .count-8 .i-5 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*5))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*5)));
-  }
-  .count-8 .i-6 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*6))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*6)));
-  }
-  .count-8 .i-7 {
-    --pose: translate(-50%,-50%) rotate(calc(-90deg + (360deg/8*7))) translateY(calc(-1 * var(--radius))) rotate(calc(90deg - (360deg/8*7)));
-  }
-}
-
-/* === Global Buttons: no-jump scale hover === */
-:where(.side-btn, .btn, .scene-button, .control-button, .wled-button, .rollershade-btn, .tv-firetv, .tv-roku, .remote-btn, .global-ring-top .global-btn):is(:hover, :active) {
-  transform: scale(1.1);
-}

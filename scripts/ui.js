@@ -146,8 +146,39 @@ async function refreshLockIndicator() {
 
 // --- WebSocket for real-time updates ---
 let ws = null;
-let wsReconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
+
+// Reconnect banner
+let reconnectBanner;
+function ensureReconnectBanner(){
+  if (reconnectBanner) return reconnectBanner;
+  reconnectBanner = document.createElement('div');
+  reconnectBanner.id = 'reconnectBanner';
+  reconnectBanner.textContent = 'Reconnecting…';
+  reconnectBanner.setAttribute('aria-live','polite');
+  reconnectBanner.style.display = 'none';
+  document.body.appendChild(reconnectBanner);
+  return reconnectBanner;
+}
+
+// Message schema validation
+function isValidWsMessage(msg){
+  if (!msg || typeof msg !== 'object') return false;
+  const { type, deviceId, attributes, timestamp } = msg;
+  const validType = typeof type === 'string' && type.length > 0;
+  const hasDevice = (type === 'device_state_update') ? (deviceId !== undefined) : true;
+  const hasAttrs  = (type === 'device_state_update') ? (attributes && typeof attributes === 'object') : true;
+  const hasTs     = (timestamp === undefined) || Number.isFinite(Number(timestamp));
+  return validType && hasDevice && hasAttrs && hasTs;
+}
+
+let wsReconnectAttempts = 0;
+function scheduleReconnect(){
+  wsReconnectAttempts++;
+  const backoff = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+  ensureReconnectBanner().style.display = 'block';
+  setTimeout(connectWebSocket, backoff);
+}
 
 function connectWebSocket() {
   ws = new WebSocket('ws://localhost:4712');
@@ -155,6 +186,7 @@ function connectWebSocket() {
   ws.onopen = function() {
     console.log('WebSocket connected');
     wsReconnectAttempts = 0;
+    try { ensureReconnectBanner().style.display = 'none'; } catch(e){}
     
     // Request initial state refresh for key devices
     if (window.deviceStateManager && !window._initialRefreshDone) {
@@ -165,10 +197,7 @@ function connectWebSocket() {
   
   ws.onclose = function() {
     console.log('WebSocket disconnected');
-    if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-      wsReconnectAttempts++;
-      setTimeout(connectWebSocket, 1000 * wsReconnectAttempts);
-    }
+    scheduleReconnect();
   };
   
   ws.onerror = function(error) {
@@ -179,12 +208,35 @@ function connectWebSocket() {
     try {
       const raw = typeof event.data === 'string' ? event.data : '';
       
-      // Handle Reolink camera notifications
+      // Handle Reolink camera notifications - ALWAYS interrupt any modal except camera modal
       if (raw && raw.toLowerCase().includes('reolink')) {
+        console.log('Reolink message received, checking modal state...');
+        
+        // If camera modal is already open, don't interrupt it
+        if (activeModal === 'camera') {
+          console.log('Camera modal already open, not interrupting');
+          return;
+        }
+        
+        // If any other modal is open, close it and show camera
+        if (activeModal && activeModal !== 'camera') {
+          console.log('Closing active modal to show camera');
+          closeActiveModal();
+        }
+        
+        // Show camera modal
         showCameraModal();
+        return;
+      }
+      
+      // For non-Reolink messages, check if websocket listening is disabled
+      if (typeof window.isWebSocketListeningEnabled === 'function' && !window.isWebSocketListeningEnabled()) {
+        console.log('WebSocket listening disabled, ignoring message');
+        return;
       }
       
       const msg = JSON.parse(event.data);
+      if (!isValidWsMessage(msg)) return;
       handleWebSocketMessage(msg);
       
     } catch (e) {

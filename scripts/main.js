@@ -300,12 +300,27 @@ async function initializeDashboard() {
     }
     
     // Initial state refresh for key devices
-    await Promise.all([
-      window.apiService.getDeviceStatus(BEDROOM_GROUP_ID),
-      window.apiService.getDeviceStatus('474'), // 50" Philips Roku TV
-      window.apiService.getDeviceStatus('473'), // Bedroom tv (94E742) - Roku TV
-      window.apiService.getDeviceStatus('457')  // Bedroom Lights
+    const [bedroomGroup, rokuTv, bedroomTv] = await Promise.all([
+      window.apiService.getDevice(BEDROOM_GROUP_ID),
+      window.apiService.getDevice('474'), // 50" Philips Roku TV
+      window.apiService.getDevice('473')  // Bedroom tv (94E742) - Roku TV
     ]);
+    
+    // Update state manager with the fetched data
+    if (window.deviceStateManager) {
+      if (bedroomGroup && bedroomGroup.attributes) {
+        const attrs = window.deviceStateManager.normalizeAttributes(bedroomGroup.attributes);
+        window.deviceStateManager.updateDevice(BEDROOM_GROUP_ID, attrs);
+      }
+      if (rokuTv && rokuTv.attributes) {
+        const attrs = window.deviceStateManager.normalizeAttributes(rokuTv.attributes);
+        window.deviceStateManager.updateDevice('474', attrs);
+      }
+      if (bedroomTv && bedroomTv.attributes) {
+        const attrs = window.deviceStateManager.normalizeAttributes(bedroomTv.attributes);
+        window.deviceStateManager.updateDevice('473', attrs);
+      }
+    }
     
     // Update paddle switch based on BedroomLifxGOG group state (only called on initial load and external state changes)
     updatePaddleSwitchFromState();
@@ -370,9 +385,31 @@ function updatePaddleSwitchUI(allOn) {
   if (allOn) {
     paddleSwitch.classList.add('on');
     paddleSwitch.classList.remove('off');
+    
+    // If there's a current applied scene, show its gradient
+    if (window.currentAppliedScene) {
+      const scene = window.lifxScenes?.find(s => s.name === window.currentAppliedScene);
+      if (scene && scene.gradient) {
+        paddleSwitch.style.background = scene.gradient;
+        paddleSwitch.style.color = '#222';
+      } else {
+        // Default on state
+        paddleSwitch.style.background = '';
+        paddleSwitch.style.color = '';
+      }
+    } else {
+      // Default on state
+      paddleSwitch.style.background = '';
+      paddleSwitch.style.color = '';
+    }
   } else {
     paddleSwitch.classList.remove('on');
     paddleSwitch.classList.add('off');
+    // Reset to default off state
+    paddleSwitch.style.background = '';
+    paddleSwitch.style.color = '';
+    // Clear current scene reference
+    window.currentAppliedScene = null;
   }
 }
 
@@ -406,8 +443,8 @@ async function updatePaddleSwitch2UI() {
   
   try {
     // Check current states of all devices
-    const bedroomLightsState = await window.apiService.getDeviceStatus('457'); // Bedroom Lights
-    const bedroomTvState = await window.apiService.getDeviceStatus('473'); // Bedroom tv (94E742) - Roku TV
+    const bedroomLightsState = await window.apiService.getDevice('457'); // Bedroom Lights
+    const bedroomTvState = await window.apiService.getDevice('473'); // Bedroom tv (94E742) - Roku TV
     
     // Check Fire TV state via Home Assistant
     let fireTvState = null;
@@ -492,8 +529,8 @@ if (paddleSwitch2) {
     
     try {
       // Check current states of all devices
-      const bedroomLightsState = await window.apiService.getDeviceStatus('457'); // Bedroom Lights
-      const bedroomTvState = await window.apiService.getDeviceStatus('473'); // Bedroom tv (94E742) - Roku TV
+      const bedroomLightsState = await window.apiService.getDevice('457'); // Bedroom Lights
+      const bedroomTvState = await window.apiService.getDevice('473'); // Bedroom tv (94E742) - Roku TV
       
       // Check Fire TV state via Home Assistant
       let fireTvState = null;
