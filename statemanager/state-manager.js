@@ -219,10 +219,6 @@ class DeviceStateManager {
       this.updateMediaVisualState(deviceId, state);
     }
     
-    // Vacuum (Roborock)
-    if ('state' in state || 'battery' in state || 'dockError' in state) {
-      this.updateVacuumVisualState(state);
-    }
   }
 
   /* ================= Visual State Helpers ================= */
@@ -378,26 +374,6 @@ class DeviceStateManager {
     }
   }
 
-  // Vacuum: motion + battery tint (optional)
-  updateVacuumVisualState(state) {
-    const st = String(state.state || '').toLowerCase();
-    const active = /clean|auto|spot/.test(st);
-    const btn = this._sideBtnByTitle('Vacuum');
-    if (!btn) return;
-    
-    btn.classList.add('vacuum');
-    btn.classList.toggle('active', active);
-    btn.classList.toggle('is-on', active);
-    
-    const batt = Number(state.battery);
-    let color = 'rgba(120, 200, 120, .85)';
-    if (!Number.isNaN(batt)) {
-      if (batt < 20) color = 'rgba(244, 96, 72, .95)';
-      else if (batt < 50) color = 'rgba(255, 196, 86, .95)';
-    }
-    this._setGlow(btn, color, active ? .6 : .4);
-    if (active) this._pulse(btn);
-  }
 
   // Paddle switch visual state
   updatePaddleSwitchVisualState() {

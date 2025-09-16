@@ -60,8 +60,8 @@ class UIManager {
     const modalBody = document.getElementById('modalBody');
     if (!modalBody) return;
 
-    const deviceControls = modalBody.querySelector('#deviceControls');
-    if (deviceControls && !deviceControls.style.display) {
+    const carousel = modalBody.querySelector('#sliderCarousel');
+    if (carousel && !carousel.style.display) {
       // Check if this modal is for the updated device
       const currentDeviceId = this.getCurrentModalDeviceId();
       if (currentDeviceId === deviceId) {
@@ -100,10 +100,10 @@ class UIManager {
       return deviceIdElement.getAttribute('data-device-id');
     }
 
-    // Check if we're in a device modal by looking for device controls
-    const deviceControls = modalBody.querySelector('#deviceControls');
-    if (deviceControls && deviceControls.dataset.deviceId) {
-      return deviceControls.dataset.deviceId;
+    // Check if we're in a device modal by looking for carousel with device ID
+    const carousel = modalBody.querySelector('#sliderCarousel');
+    if (carousel && carousel.dataset.targetDeviceId) {
+      return carousel.dataset.targetDeviceId;
     }
 
     return null;
@@ -151,9 +151,6 @@ class UIManager {
       case 'showThermostatModal':
         this.showThermostatModal();
         break;
-      case 'showVacuumModal':
-        this.showModal('Vacuum Controls', '<div class="coming-soon">Vacuum controls coming soon...</div>');
-        break;
     }
   }
 
@@ -196,13 +193,7 @@ class UIManager {
     } else if (id === 'wled') {
       this.showWledModal();
     } else if (id === 'global') {
-      if (window.showGlobalControlsModal) {
-        window.showGlobalControlsModal();
-      } else {
-        this._ensureScenesLoaded().then(() => {
-          if (window.showGlobalControlsModal) window.showGlobalControlsModal();
-        });
-      }
+      this.showDeviceModal('Bedroom Lights', '457', true);
     } else {
       this.showModal(`<h2>${label}</h2><div class="coming-soon">Controls for <b>${label}</b> coming soon...</div>`, {
         showBack: true,
@@ -240,7 +231,7 @@ class UIManager {
   }
 
   showDeviceModal(label, deviceId, showBack = false) {
-    this.showModal(`<div class="modal-header"><h2>${label}</h2></div><div id='deviceControls' class="control-panel" data-device-id="${deviceId}"><em>Loading...</em></div>`, {
+    this.showModal(`<div class="modal-header"><h2>${label}</h2></div><div class="device-loading-message"><em>Loading...</em></div>`, {
       showBack,
       triggerSelector: '.side-btn[title="Lights"]'
     });
@@ -264,8 +255,8 @@ class UIManager {
       
       this.renderDeviceControls(device, deviceId, showBack);
     } catch (error) {
-      document.getElementById('deviceControls').innerHTML = 
-        `<div class="error-message">Failed to load device state: ${error.message}</div>`;
+      document.getElementById('modalBody').innerHTML = 
+        `<div class="modal-header"><h2>Device Controls</h2></div><div class="error-message">Failed to load device state: ${error.message}</div>`;
     }
   }
 
@@ -288,7 +279,7 @@ class UIManager {
   renderDeviceControls(device, deviceId, showBack) {
     const capabilities = this.getDeviceCapabilities(deviceId);
     if (!capabilities) {
-      document.getElementById('deviceControls').innerHTML = `<div class="error-message">Unknown device type</div>`;
+      document.getElementById('modalBody').innerHTML = `<div class="modal-header"><h2>Device Controls</h2></div><div class="error-message">Unknown device type</div>`;
       return;
     }
 
@@ -314,49 +305,18 @@ class UIManager {
       const deg=start+(i/steps)*(end-start);
       html+=`<button class="bubble-btn global-btn ${b.cls}" style="--pose:translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1*var(--radius))) rotate(${-deg}deg);" onclick=\"${b.cmd}\"><span class='icon'>${b.icon}</span><span class='label'>${b.lbl}</span></button>`;
     });
-    html+='</div><div class="controls-group">';
+    html+='</div><div id="sliderCarousel" class="carousel"></div>';
 
-    // Brightness kawaii slider
-    html+=this._sliderHTML(deviceId,'Lvl','#ffffff,#777777,#000000',level+'%',level,'Bright');
-    if(capabilities.includes('ColorTemperature')) html+=this._sliderHTML(deviceId,'Ct','#ff8a65,#ffd600,#3aa3ff',ct+'K',ct,'Temp');
-    if(capabilities.includes('ColorControl')) {
-      html+=this._sliderHTML(deviceId,'Hue','#ff0000,#ff8000,#ffff00,#80ff00,#00ff00,#00ff80,#00ffff,#ff0000',hue,hue,'Hue');
-      html+=this._sliderHTML(deviceId,'Sat','#ff0000,#ff8080,#ffffff',sat,sat,'Sat');
-    }
-    html+='</div>';
+    document.getElementById('modalBody').innerHTML=html;
 
-    document.getElementById('deviceControls').innerHTML=html;
-
-    // init sliders
+    // init carousel sliders
     setTimeout(()=>{
-      window.setupKawaiiSlider && window.setupKawaiiSlider(`bgLvl-${deviceId}`,`progressLvl-${deviceId}`,`valLvl-${deviceId}`,'setLevel',deviceId);
-      if(capabilities.includes('ColorTemperature')) window.setupKawaiiSlider(`bgCt-${deviceId}`,`progressCt-${deviceId}`,`valCt-${deviceId}`,'setColorTemperature',deviceId);
-      if(capabilities.includes('ColorControl')) {
-        window.setupKawaiiSlider(`bgHue-${deviceId}`,`progressHue-${deviceId}`,`valHue-${deviceId}`,'setHue',deviceId);
-        window.setupKawaiiSlider(`bgSat-${deviceId}`,`progressSat-${deviceId}`,`valSat-${deviceId}`,'setSaturation',deviceId);
-      }
+      initializeSliderCarousel(deviceId);
     },50);
+  
   }
 
-  _sliderHTML(id,suffix,grad,valText,valRaw,label){
-    const gradId=`${suffix.toLowerCase()}Gradient-${id}`;
-    const bgId=`bg${suffix}-${id}`;
-    const progId=`progress${suffix}-${id}`;
-    const valId=`val${suffix}-${id}`;
-    const stops=grad.split(',');
-    let defs='<linearGradient id="'+gradId+'" x1="0%" y1="0%" x2="0%" y2="100%">';
-    const step=100/(stops.length-1);
-    stops.forEach((c,i)=>{defs+=`<stop offset="${i*step}%" stop-color="${c.trim()}" />`;});
-    defs+='</linearGradient>';
-    return `<div class='slider-wrapper'>
-      <svg class='kawaii-slider' width='60' height='260'>${defs}
-        <path id='${bgId}' d='M20 230 C 50 200, 50 60, 20 30' stroke='#e4e4e4' stroke-width='30' fill='none' stroke-linecap='round'/>
-        <path id='${progId}' d='M20 230 C 50 200, 50 60, 20 30' stroke='url(#${gradId})' stroke-width='30' fill='none' stroke-linecap='round' stroke-dasharray='1' stroke-dashoffset='1'/>
-      </svg>
-      <div class='value' id='${valId}'>${valText}</div>
-      <div style='font-size:12px;'>${label}</div>
-    </div>`;
-  }
+
 
   getDeviceCapabilities(deviceId) {
     const deviceMap = {

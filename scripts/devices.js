@@ -11,7 +11,7 @@ async function openDeviceModal(label, deviceId, showBack = false) {
   }
   
   showModalContent(`<div class="modal-header"><h2>${label}</h2></div>
-    <div id='deviceControls' class="control-panel with-arches" data-device-id="${deviceId}"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
+    <div class="device-loading-message"><em>Loading...</em></div>`, showBack, '.side-btn[title="Lights"]');
   
   // Initialize from current cache; refresh once if stale/missing
   let attrs = window.deviceStateManager.getDevice(deviceId) || {};
@@ -27,7 +27,8 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   
   if (!device || !device.attributes) {
     console.error('Invalid device data:', device);
-    document.getElementById('deviceControls').innerHTML = `
+    document.getElementById('modalBody').innerHTML = `
+      <div class="modal-header"><h2>Device Controls</h2></div>
       <div class="device-error-container">
         <div class="device-error-title">❌ Invalid device data</div>
         <div class="device-error-details">Device ID: ${deviceId}</div>
@@ -139,123 +140,30 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   }
   html += `</div>`;
 
-  // Controls group - same classes as global controls
-  html += `<div class="controls-group">`;
-  
-  // Brightness slider (Kawaii style)
-  html += `
-    <div class="slider-wrapper">
-      <svg class="kawaii-slider" width="60" height="260">
-        <defs>
-          <linearGradient id="lvlGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" />
-            <stop offset="50%" stop-color="#777777" />
-            <stop offset="100%" stop-color="#000000" />
-          </linearGradient>
-        </defs>
-        <path id="bgLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-        <path id="progressLvl-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#lvlGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-      </svg>
-      <div class="value" id="valLvl-${deviceId}">${level}%</div>
-      <div style="font-size: 12px;">Bright</div>
-    </div>`;
-  
-  // Color Temperature slider (if supported)
-  if (hasCapability('ColorTemperature')) {
-    html += `
-      <div class="slider-wrapper">
-        <svg class="kawaii-slider" width="60" height="260">
-          <defs>
-            <linearGradient id="ctGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#ff8a65" />
-              <stop offset="50%" stop-color="#ffd600" />
-              <stop offset="100%" stop-color="#3aa3ff" />
-            </linearGradient>
-          </defs>
-          <path id="bgCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-          <path id="progressCt-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#ctGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-        </svg>
-        <div class="value" id="valCt-${deviceId}" style="color: #ff8a65;">${colorTemp}K</div>
-        <div style="font-size: 12px;">Temp</div>
-      </div>`;
-  }
-  
-  // Color controls (if supported)
-  if (hasCapability('ColorControl')) {
-    // HUE Slider (Kawaii style)
-    html += `
-      <div class="slider-wrapper">
-        <svg class="kawaii-slider" width="60" height="260">
-          <defs>
-            <linearGradient id="hueGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#ff0000" />
-              <stop offset="14%" stop-color="#ff8000" />
-              <stop offset="29%" stop-color="#ffff00" />
-              <stop offset="43%" stop-color="#80ff00" />
-              <stop offset="57%" stop-color="#00ff00" />
-              <stop offset="71%" stop-color="#00ff80" />
-              <stop offset="86%" stop-color="#00ffff" />
-              <stop offset="100%" stop-color="#ff0000" />
-            </linearGradient>
-          </defs>
-          <path id="bgHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-          <path id="progressHue-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#hueGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-        </svg>
-        <div class="value" id="valHue-${deviceId}" style="color: #ff0000;">${hue}</div>
-        <div style="font-size: 12px;">Hue</div>
-      </div>`;
-    
-    // SAT Slider (Kawaii style)
-    html += `
-      <div class="slider-wrapper">
-        <svg class="kawaii-slider" width="60" height="260">
-          <defs>
-            <linearGradient id="satGradient-${deviceId}" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#ff0000" />
-              <stop offset="50%" stop-color="#ff8080" />
-              <stop offset="100%" stop-color="#ffffff" />
-            </linearGradient>
-          </defs>
-          <path id="bgSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-          <path id="progressSat-${deviceId}" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#satGradient-${deviceId})" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-        </svg>
-        <div class="value" id="valSat-${deviceId}" style="color: #ff0000;">${sat}</div>
-        <div style="font-size: 12px;">Sat</div>
-      </div>`;
-  }
-  
-  html += `</div>`;
+  // Controls group - replaced with carousel
+  html += `<div id="sliderCarousel" class="carousel"></div>`;
   
   // Optional refresh button (kept minimal, styled like icon-only)
   html += `<div class="device-refresh-section">
     <button id='refreshBtn' class='btn btn-info' title='Refresh'>🔄</button>
   </div>`;
   
-  document.getElementById('deviceControls').innerHTML = html;
+  document.getElementById('modalBody').innerHTML = html;
   document.getElementById('backModal').style.display = showBack ? '' : 'none';
   
-  // Setup kawaii sliders for this device
+  // Setup carousel sliders for this device
   setTimeout(() => {
     try {
-      setupKawaiiSlider(`bgLvl-${deviceId}`, `progressLvl-${deviceId}`, `valLvl-${deviceId}`, 'setLevel', deviceId);
-      
-      if (hasCapability('ColorTemperature')) {
-        setupKawaiiSlider(`bgCt-${deviceId}`, `progressCt-${deviceId}`, `valCt-${deviceId}`, 'setColorTemperature', deviceId);
-      }
-      
-      if (hasCapability('ColorControl')) {
-        setupKawaiiSlider(`bgHue-${deviceId}`, `progressHue-${deviceId}`, `valHue-${deviceId}`, 'setHue', deviceId);
-        setupKawaiiSlider(`bgSat-${deviceId}`, `progressSat-${deviceId}`, `valSat-${deviceId}`, 'setSaturation', deviceId);
-      }
+      initializeSliderCarousel(deviceId);
     } catch (error) {
-      console.error('Error setting up kawaii sliders for device:', deviceId, error);
+      console.error('Error setting up slider carousel for device:', deviceId, error);
     }
   }, 100);
   
   // Event listeners for the refresh button
   document.getElementById('refreshBtn').onclick = function() {
-    const container = document.getElementById('deviceControls');
-    container.innerHTML = '<div class="device-loading-message"><em>Refreshing...</em></div>';
+    const container = document.getElementById('modalBody');
+    container.innerHTML = '<div class="modal-header"><h2>Device Controls</h2></div><div class="device-loading-message"><em>Refreshing...</em></div>';
     if (window.deviceStateManager) {
       window.deviceStateManager.refreshDevice(deviceId)
         .then(() => {
@@ -269,144 +177,6 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   };
 }
 
-// Helper function to setup kawaii sliders for device controls
-function setupKawaiiSlider(bgId, progressId, valueId, command, deviceId) {
-  const bg = document.getElementById(bgId);
-  const progress = document.getElementById(progressId);
-  const value = document.getElementById(valueId);
-  
-  if (!bg || !progress || !value) {
-    console.error(`Missing slider elements: ${bgId}, ${progressId}, ${valueId}`);
-    return;
-  }
-  
-  const pathLength = bg.getTotalLength();
-  progress.style.strokeDasharray = pathLength;
-  
-  // Set initial value based on current value
-  let currentValue = 0;
-  if (command === 'setLevel') {
-    currentValue = parseInt(value.textContent) || 0;
-  } else if (command === 'setColorTemperature') {
-    currentValue = parseInt(value.textContent) || 3000;
-  } else if (command === 'setHue') {
-    currentValue = parseInt(value.textContent) || 0;
-  } else if (command === 'setSaturation') {
-    currentValue = parseInt(value.textContent) || 0;
-  }
-  
-  // Update progress bar
-  updateProgressBar(progress, pathLength, currentValue, command);
-  
-  let dragging = false;
-  
-  function move(e) {
-    const rect = bg.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const value = getValueFromY(y, rect.height, command);
-    updateSliderValue(value, command, deviceId);
-  }
-  
-  function startDrag(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragging = true;
-    move(e);
-    window.addEventListener("mousemove", move);
-  }
-  
-  function endDrag() {
-    if (!dragging) return;
-    dragging = false;
-    window.removeEventListener("mousemove", move);
-  }
-  
-  // Mouse events
-  bg.addEventListener("mousedown", startDrag);
-  progress.addEventListener("mousedown", startDrag);
-  window.addEventListener("mouseup", endDrag);
-  
-  // Touch events
-  bg.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
-  });
-  
-  progress.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
-  });
-  
-  window.addEventListener("touchmove", (e) => {
-    if (dragging && e.touches[0]) {
-      move({ clientY: e.touches[0].clientY });
-    }
-  });
-  
-  window.addEventListener("touchend", endDrag);
-  
-  // Click events for immediate response
-  bg.addEventListener("click", (e) => {
-    if (!dragging) {
-      move(e);
-    }
-  });
-  
-  progress.addEventListener("click", (e) => {
-    if (!dragging) {
-      move(e);
-    }
-  });
-  
-  function getValueFromY(y, height, command) {
-    const normalizedY = Math.max(0, Math.min(1, 1 - (y / height)));
-    
-    if (command === 'setLevel') {
-      return Math.max(1, Math.round(normalizedY * 100));
-    } else if (command === 'setColorTemperature') {
-      return Math.round(2000 + normalizedY * 7000);
-    } else if (command === 'setHue') {
-      return Math.round(normalizedY * 100);
-    } else if (command === 'setSaturation') {
-      return Math.round(normalizedY * 100);
-    }
-    return 0;
-  }
-  
-  function updateSliderValue(newValue, command, deviceId) {
-    currentValue = newValue;
-    
-    // Update display
-    if (command === 'setLevel') {
-      value.textContent = newValue + '%';
-    } else if (command === 'setColorTemperature') {
-      value.textContent = newValue + 'K';
-    } else {
-      value.textContent = newValue;
-    }
-    
-    // Update progress bar
-    updateProgressBar(progress, pathLength, newValue, command);
-    
-    // Send command to device
-    sendDeviceCommand(deviceId, command, newValue);
-  }
-  
-  function updateProgressBar(progress, pathLength, value, command) {
-    let normalizedValue = 0;
-    
-    if (command === 'setLevel') {
-      normalizedValue = value / 100;
-    } else if (command === 'setColorTemperature') {
-      normalizedValue = (value - 2000) / 7000;
-    } else if (command === 'setHue' || command === 'setSaturation') {
-      normalizedValue = value / 100;
-    }
-    
-    const dashOffset = pathLength * (1 - normalizedValue);
-    progress.style.strokeDashoffset = dashOffset;
-  }
-}
 
 function sendDeviceCommand(deviceId, command, value) {
   let url = `${window.MAKER_API_BASE}/devices/${deviceId}/${command}`;

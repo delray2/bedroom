@@ -1,79 +1,84 @@
-// Enhanced Scene System with Individual Bulb Control and Calculated Color Palettes
+// Enhanced Scene System with Individual Bulb Control and LIFX Theme-Inspired Palettes
 window.lifxScenes = [
   {
-    name: 'White',
-    gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f7f7f7 35%, #ebebeb 70%, #dcdcdc 100%)',
+    name: 'Focusing',
+    gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f8f9fa 35%, #e9ecef 70%, #dee2e6 100%)',
     bulbs: [
-      { deviceId: '480', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1
-      { deviceId: '451', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 2
-      { deviceId: '447', color: '#ffffff', brightness: 100, temp: 4000 }  // Bed Lamp
+      { deviceId: '480', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1 - Pure white
+      { deviceId: '451', color: '#f8f9fa', brightness: 95, temp: 4000 },   // Bedroom Fan 2 - Soft white
+      { deviceId: '447', color: '#e9ecef', brightness: 90, temp: 4000 }   // Bed Lamp - Light gray
     ],
     wled: {
       palette: 0,  // Default palette
       effect: 0,   // Solid
       brightness: 128,
       color: '#ffffff'
-    }
+    },
+    beamPalette: ['#ffffff', '#f8f9fa', '#e9ecef', '#dee2e6']  // Clean, focused palette
   },
   {
-    name: 'Sunset',
-    gradient: 'conic-gradient(from 200deg at 50% 50%, #ff4500 0%, #ff6347 25%, #ffd700 50%, #ff8c00 75%, #dc143c 100%)',
+    name: 'Evening',
+    gradient: 'conic-gradient(from 200deg at 50% 50%, #ff6b35 0%, #f7931e 25%, #ffd23f 50%, #ff8c42 75%, #ff4757 100%)',
     bulbs: [
-      { deviceId: '480', color: '#ff4500', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Red-orange
-      { deviceId: '451', color: '#ffd700', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Gold
-      { deviceId: '447', color: '#ff6347', brightness: 60, temp: 3500 }   // Bed Lamp - Tomato red
+      { deviceId: '480', color: '#ff6b35', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Warm orange
+      { deviceId: '451', color: '#ffd23f', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Golden yellow
+      { deviceId: '447', color: '#ff8c42', brightness: 60, temp: 3500 }   // Bed Lamp - Soft orange
     ],
     wled: {
       palette: 45, // Sunset palette
       effect: 0,   // Solid
       brightness: 128
-    }
+    },
+    beamPalette: ['#ff6b35', '#f7931e', '#ffd23f', '#ff8c42', '#ff4757']  // Warm evening palette
   },
   {
-    name: 'Ocean',
-    gradient: 'radial-gradient(circle at 40% 30%, #006994 0%, #00bfff 40%, #87ceeb 75%, #e0f6ff 100%)',
+    name: 'Calm',
+    gradient: 'radial-gradient(circle at 40% 30%, #4a90e2 0%, #7bb3f0 25%, #a8d0f0 50%, #c7e9f1 75%, #e8f4fd 100%)',
     bulbs: [
-      { deviceId: '480', color: '#000080', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Navy blue
-      { deviceId: '451', color: '#00bfff', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Deep sky blue
-      { deviceId: '447', color: '#87ceeb', brightness: 65, temp: 6000 }   // Bed Lamp - Sky blue
+      { deviceId: '480', color: '#4a90e2', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Deep blue
+      { deviceId: '451', color: '#7bb3f0', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Sky blue
+      { deviceId: '447', color: '#a8d0f0', brightness: 65, temp: 6000 }   // Bed Lamp - Light blue
     ],
     wled: {
       palette: 37, // Tropical palette
       effect: 0,   // Solid
       brightness: 128
-    }
+    },
+    beamPalette: ['#4a90e2', '#7bb3f0', '#a8d0f0', '#c7e9f1', '#e8f4fd']  // Calm blue palette
   },
   {
-    name: 'Forest',
-    gradient: 'radial-gradient(circle at 60% 40%, #2d5016 0%, #4a7c59 30%, #ffffff 55%, rgb(58, 7, 111) 75%, #8b4513 100%)',
+    name: 'Gentle',
+    gradient: 'radial-gradient(circle at 60% 40%, #2d5016 0%, #4a7c59 25%, #6b8e23 50%, #9acd32 75%, #f0f8e8 100%)',
     bulbs: [
       { deviceId: '480', color: '#2d5016', brightness: 80, temp: 5000 },  // Bedroom Fan 1 - Dark green
       { deviceId: '451', color: '#4a7c59', brightness: 70, temp: 5500 },  // Bedroom Fan 2 - Forest green
-      { deviceId: '447', color: '#ffffff', brightness: 60, temp: 5200 }   // Bed Lamp - White
+      { deviceId: '447', color: '#6b8e23', brightness: 60, temp: 5200 }   // Bed Lamp - Olive green
     ],
     wled: {
       palette: 55, // Forest palette
       effect: 0,   // Solid
       brightness: 128
-    }
+    },
+    beamPalette: ['#2d5016', '#4a7c59', '#6b8e23', '#9acd32', '#f0f8e8']  // Gentle nature palette
   },
   {
-    name: 'Candlelight',
-    gradient: 'radial-gradient(circle at 50% 45%, #ffd452 0%, #ffb347 45%, #ff6961 100%)',
+    name: 'Hygge',
+    gradient: 'radial-gradient(circle at 50% 45%, #ffd700 0%, #ffb347 25%, #ff8c42 50%, #ff6b35 75%, #ff4757 100%)',
     bulbs: [
-      { deviceId: '480', color: '#ffd452', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
+      { deviceId: '480', color: '#ffd700', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
       { deviceId: '451', color: '#ffb347', brightness: 50, temp: 2500 },  // Bedroom Fan 2 - Orange
-      { deviceId: '447', color: '#ff6961', brightness: 40, temp: 2800 }   // Bed Lamp - Soft red
+      { deviceId: '447', color: '#ff8c42', brightness: 40, temp: 2800 }   // Bed Lamp - Soft orange
     ],
     wled: {
       palette: 65, // Party palette
       effect: 0,   // Solid
       brightness: 100
-    }
+    },
+    beamPalette: ['#ffd700', '#ffb347', '#ff8c42', '#ff6b35', '#ff4757']  // Cozy hygge palette
   },
   {
-    name: 'Magenta Dream',
-    gradient: 'conic-gradient(from 90deg at 50% 50%, #ff61a6 0%, #a18cd1 50%, #4a90e2 100%)',
+    name: 'Fantasy',
+    gradient: 'conic-gradient(from 90deg at 50% 50%, #ff61a6 0%, #a18cd1 25%, #4a90e2 50%, #7b68ee 75%, #9370db 100%)',
     bulbs: [
       { deviceId: '480', color: '#ff61a6', brightness: 75, temp: 3500 },  // Bedroom Fan 1 - Magenta
       { deviceId: '451', color: '#a18cd1', brightness: 65, temp: 4000 },  // Bedroom Fan 2 - Purple
@@ -83,35 +88,38 @@ window.lifxScenes = [
       palette: 0,  // Rainbow palette
       effect: 0,   // Solid
       brightness: 128
-    }
+    },
+    beamPalette: ['#ff61a6', '#a18cd1', '#4a90e2', '#7b68ee', '#9370db']  // Dreamy fantasy palette
   },
   {
-    name: 'Aurora',
-    gradient: 'conic-gradient(at 50% 50%, #00ff87 0%, #00ffff 20%, #0080ff 40%, #8000ff 60%, #ff0080 80%, #ffff00 100%)',
+    name: 'Cheerful',
+    gradient: 'conic-gradient(at 50% 50%, #ffeb3b 0%, #ff9800 20%, #ff5722 40%, #e91e63 60%, #9c27b0 80%, #3f51b5 100%)',
     bulbs: [
-      { deviceId: '480', color: '#00ff87', brightness: 70, temp: 5000 },  // Bedroom Fan 1 - Spring green
-      { deviceId: '451', color: '#00ffff', brightness: 60, temp: 6000 },  // Bedroom Fan 2 - Cyan
-      { deviceId: '447', color: '#8000ff', brightness: 50, temp: 7000 }   // Bed Lamp - Purple
+      { deviceId: '480', color: '#ffeb3b', brightness: 85, temp: 4000 },  // Bedroom Fan 1 - Bright yellow
+      { deviceId: '451', color: '#ff9800', brightness: 80, temp: 4200 },  // Bedroom Fan 2 - Orange
+      { deviceId: '447', color: '#e91e63', brightness: 75, temp: 4500 }   // Bed Lamp - Pink
     ],
     wled: {
       palette: 0,  // Rainbow palette
-      effect: 51,  // Colorloop
+      effect: 0,   // Solid
       brightness: 128
-    }
+    },
+    beamTheme: 'cheerful'  // Use LIFX cheerful theme
   },
   {
-    name: 'Cozy',
-    gradient: 'radial-gradient(circle at 40% 60%, #ff9a9e 0%, #fecfef 50%, #ffd1dc 100%)',
+    name: 'Love',
+    gradient: 'radial-gradient(circle at 40% 60%, #ff69b4 0%, #ff1493 25%, #ffc0cb 50%, #ffe4e1 75%, #fff0f5 100%)',
     bulbs: [
-      { deviceId: '480', color: '#ff9a9e', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Soft pink
-      { deviceId: '451', color: '#fecfef', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
-      { deviceId: '447', color: '#ffb3ba', brightness: 45, temp: 3100 }   // Bed Lamp - Medium pink
+      { deviceId: '480', color: '#ff69b4', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Hot pink
+      { deviceId: '451', color: '#ffc0cb', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
+      { deviceId: '447', color: '#ff1493', brightness: 45, temp: 3100 }   // Bed Lamp - Deep pink
     ],
     wled: {
       palette: 45, // Sunset palette
       effect: 0,   // Solid
       brightness: 80
-    }
+    },
+    beamPalette: ['#ff69b4', '#ff1493', '#ffc0cb', '#ffe4e1', '#fff0f5']  // Warm love palette
   }
 ];
 
@@ -218,8 +226,24 @@ window.applyLifxScene = async function(sceneName) {
       fetch(`http://${WLED_DEVICES.bedroom2}/win&CL=${gradientString}&FX=89&A=${scene.wled.brightness}&SA=0&SB=300&SC=1&SE=1`)
     ];
     
+    // Set LIFX Beam theme or custom palette if available
+    let beamPalettePromise = Promise.resolve();
+    if (window.lifxThemes) {
+      // Always stop any running effects first
+      beamPalettePromise = window.lifxThemes.stopEffects().then(() => {
+        if (scene.beamTheme) {
+          // Use predefined LIFX theme
+          return window.lifxThemes.setThemeWithTransition(scene.beamTheme, 3);
+        } else if (scene.beamPalette) {
+          // Use custom palette
+          return window.lifxThemes.setCustomPalette(scene.beamPalette, 3);
+        }
+        return Promise.resolve();
+      });
+    }
+    
     // Wait for all promises to complete with 1-second duration for smooth transitions
-    await Promise.all([...bulbPromises.flat(), ...wledPromises]);
+    await Promise.all([...bulbPromises.flat(), ...wledPromises, beamPalettePromise]);
     
     // Store the applied scene for later reference
     window.currentAppliedScene = sceneName;
@@ -364,245 +388,25 @@ function bubbleChartBubbleClick(label, id) {
   } else if (id === 'wled') {
     showWledEffectsModal();
   } else if (id === 'global') {
-    showGlobalControlsModal();
+    openDeviceModal('Bedroom Lights', '457', true);
   } else {
     showModal(`<div class="modal-header">${label}</div>
       <div class="coming-soon">Controls for <b>${label}</b> coming soon...</div>`, { showBack: true });
   }
 }
 
-// Global Controls Modal - Uses LRGroup
+// Global Controls Modal - Now uses standard device modal system
+// This function is kept for backward compatibility but redirects to standard device modal
 function showGlobalControlsModal() {
-  const buttons = [
-    { icon: '🔆', label: 'All On',  onclick: "globalAllOn()",   cls: 'btn-all-on' },
-    { icon: '🌙', label: 'All Off', onclick: "globalAllOff()",  cls: 'btn-all-off' },
-    { icon: '🔅', label: 'Dim',     onclick: "globalDim()",     cls: 'btn-dim' },
-    { icon: '☀️', label: 'Bright',  onclick: "globalBright()",  cls: 'btn-bright' }
-  ];
-
-  let html = `<div class="bubble-ring global-ring-top" style="--radius: 180px;">`;
-
-  // ring buttons
-  const startDeg = -140, endDeg = -40;
-  const steps = buttons.length - 1 || 1;
-  for (let i = 0; i < buttons.length; i++) {
-    const t = i / steps;
-    const deg = startDeg + t * (endDeg - startDeg);
-    html += `<button class="bubble-btn global-btn ${buttons[i].cls}" style="--pose: translate(-50%,-50%) rotate(${deg}deg) translateY(calc(-1 * var(--radius))) rotate(${-deg}deg);" onclick="${buttons[i].onclick}">
-      <span class="icon">${buttons[i].icon}</span>
-      <span class="label">${buttons[i].label}</span>
-    </button>`;
-  }
-
-  // controls
-  html += `<div class="controls-group" style="display: flex; gap: 8px; justify-content: center;">`;
-
-  // HUE Slider (Kawaii style)
-  html += `
-    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
-      <svg class="kawaii-slider" width="60" height="260">
-        <defs>
-          <linearGradient id="hueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ff0000" />
-            <stop offset="14%" stop-color="#ff8000" />
-            <stop offset="29%" stop-color="#ffff00" />
-            <stop offset="43%" stop-color="#80ff00" />
-            <stop offset="57%" stop-color="#00ff00" />
-            <stop offset="71%" stop-color="#00ff80" />
-            <stop offset="86%" stop-color="#00ffff" />
-            <stop offset="100%" stop-color="#ff0000" />
-          </linearGradient>
-        </defs>
-        <path id="bgHue" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-        <path id="progressHue" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#hueGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-      </svg>
-      <div class="value" id="valHue" style="margin-top: 0.5rem; font-weight: bold; color: #ff0000;">0</div>
-      <div style="font-size: 12px; color: #666;">Hue</div>
-    </div>`;
-
-  // LEVEL Slider (Kawaii style)
-  html += `
-    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
-      <svg class="kawaii-slider" width="60" height="260">
-        <defs>
-          <linearGradient id="lvlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" />
-            <stop offset="50%" stop-color="#777777" />
-            <stop offset="100%" stop-color="#000000" />
-          </linearGradient>
-        </defs>
-        <path id="bgLvl" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-        <path id="progressLvl" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#lvlGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-      </svg>
-      <div class="value" id="valLvl" style="margin-top: 0.5rem; font-weight: bold; color: #333333;">0%</div>
-      <div style="font-size: 12px; color: #666;">Bright</div>
-    </div>`;
-
-  // SAT Slider (Kawaii style)
-  html += `
-    <div class="slider-wrapper" style="display: flex; flex-direction: column; align-items: center;">
-      <svg class="kawaii-slider" width="60" height="260">
-        <defs>
-          <linearGradient id="satGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ff0000" />
-            <stop offset="50%" stop-color="#ff8080" />
-            <stop offset="100%" stop-color="#ffffff" />
-          </linearGradient>
-        </defs>
-        <path id="bgSat" d="M20 230 C 50 200, 50 60, 20 30" stroke="#e4e4e4" stroke-width="30" fill="none" stroke-linecap="round" />
-        <path id="progressSat" d="M20 230 C 50 200, 50 60, 20 30" stroke="url(#satGradient)" stroke-width="30" fill="none" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1" />
-      </svg>
-      <div class="value" id="valSat" style="margin-top: 0.5rem; font-weight: bold; color: #ff0000;">0</div>
-      <div style="font-size: 12px; color: #666;">Sat</div>
-    </div>`;
-
-  html += `</div></div>`;
-
-  window.showModal(html, true);
-
-  // Setup kawaii sliders and fetch current state
-  setTimeout(async () => {
-    try {
-      setupKawaiiSlider('bgHue', 'progressHue', 'valHue', 'setHue');
-      setupKawaiiSlider('bgLvl', 'progressLvl', 'valLvl', 'setLevel');
-      setupKawaiiSlider('bgSat', 'progressSat', 'valSat', 'setSaturation');
-      
-      // Fetch and display current device state
-      if (window.apiService) {
-        try {
-          const device = await window.apiService.getDevice('457'); // BedroomLifxGOG
-          if (device) {
-            renderGlobalControls(device);
-          }
-        } catch (error) {
-          console.error('Failed to fetch device state for global controls:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error setting up kawaii sliders:', error);
-    }
-  }, 100);
-
-  // fetch BedroomLifxGOG and render controls
-  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
-  if (window.deviceStateManager) {
-    window.deviceStateManager.refreshDevice(BEDROOM_LIGHTS_ID)
-      .then(() => {
-        const attrs = window.deviceStateManager.getDevice(BEDROOM_LIGHTS_ID) || {};
-        renderGlobalControls({ attributes: attrs });
-      })
-      .catch(() => { console.error('Failed to load BedroomLifxGOG state from state manager.'); });
-  }
+  openDeviceModal('Bedroom Lights', '457', true);
 }
 
 
 // Expose for non-module callers
 window.showGlobalControlsModal = showGlobalControlsModal;
 
-// Wrapper helpers for inline buttons
-window.globalAllOn = () => window.sendGlobalCommand('on');
-window.globalAllOff = () => window.sendGlobalCommand('off');
-window.globalDim = () => window.sendGlobalCommand('setLevel', 30);
-window.globalBright = () => window.sendGlobalCommand('setLevel', 100);
+// Global command functions removed - now using standard device modal system
 
-// --- Wire kawaii slider interactions ---
-const setupKawaiiSlider = (bgId, progressId, valueId, command) => {
-  const bgPath = document.getElementById(bgId);
-  const prog = document.getElementById(progressId);
-  const valBox = document.getElementById(valueId);
-  
-  if (!bgPath || !prog || !valBox) {
-    console.error(`Missing slider elements: ${bgId}, ${progressId}, ${valueId}`);
-    return;
-  }
-  
-  const length = bgPath.getTotalLength();
-  prog.setAttribute("stroke-dasharray", length);
-  prog.setAttribute("stroke-dashoffset", length);
-  
-  let dragging = false;
-  let currentValue = 0;
-  
-  function move(e) {
-    const rect = bgPath.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    let t = 1 - (y / rect.height);
-    t = Math.max(0, Math.min(1, t));
-    
-    // Update visual progress
-    prog.setAttribute("stroke-dashoffset", (1 - t) * length);
-    
-    // Calculate value based on slider type
-    let value;
-    if (valueId === 'valLvl') {
-      // Level: 1-100%
-      value = Math.max(1, Math.round(t * 100));
-      valBox.textContent = `${value}%`;
-    } else {
-      // Hue and Saturation: 0-100
-      value = Math.round(t * 100);
-      valBox.textContent = value;
-    }
-    
-    currentValue = value;
-  }
-  
-  function startDrag(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragging = true;
-    move(e);
-    window.addEventListener("mousemove", move);
-  }
-  
-  function endDrag() {
-    if (!dragging) return;
-    dragging = false;
-    window.removeEventListener("mousemove", move);
-    
-    // Send command to BedroomLifxGOG device (ID: 478)
-    sendBedroomLightsCommand(command, currentValue);
-  }
-  
-  // Mouse events
-  bgPath.addEventListener("mousedown", startDrag);
-  prog.addEventListener("mousedown", startDrag);
-  window.addEventListener("mouseup", endDrag);
-  
-  // Touch events
-  bgPath.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
-  });
-  
-  prog.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startDrag({ clientY: touch.clientY, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() });
-  });
-  
-  window.addEventListener("touchmove", (e) => {
-    if (dragging && e.touches[0]) {
-      move({ clientY: e.touches[0].clientY });
-    }
-  });
-  
-  window.addEventListener("touchend", endDrag);
-  
-  // Click events for immediate response
-  bgPath.addEventListener("click", (e) => {
-    if (!dragging) {
-      move(e);
-      sendBedroomLightsCommand(command, currentValue);
-    }
-  });
-  
-  prog.addEventListener("click", (e) => {
-    if (!dragging) {
-      move(e);
-      sendBedroomLightsCommand(command, currentValue);
-    }
-  });
-};
 
 // Send command to BedroomLifxGOG device using Hubitat API
 function sendBedroomLightsCommand(command, value) {
@@ -628,116 +432,9 @@ function sendBedroomLightsCommand(command, value) {
     });
 }
 
-function renderGlobalControls(device) {
-  const attr = device.attributes || {};
-  const isOn = attr.switch === 'on';
-  const level = Number(attr.level || 0);
-  const hue = Number(attr.hue || 0);
-  const sat = Number(attr.saturation || 0);
-  
-  console.log('BedroomLifxGOG state:', { isOn, level, hue, sat });
-  
-  // Update kawaii slider values and visual progress
-  const valLvl = document.getElementById('valLvl');
-  const valHue = document.getElementById('valHue');
-  const valSat = document.getElementById('valSat');
-  
-  const bgLvl = document.getElementById('bgLvl');
-  const bgHue = document.getElementById('bgHue');
-  const bgSat = document.getElementById('bgSat');
-  
-  const progressLvl = document.getElementById('progressLvl');
-  const progressHue = document.getElementById('progressHue');
-  const progressSat = document.getElementById('progressSat');
-  
-  // Update text values with proper formatting
-  if (valLvl) {
-    valLvl.textContent = `${Math.max(1, Math.round(level))}%`;
-    valLvl.style.color = level > 50 ? '#333333' : '#666666';
-  }
-  if (valHue) {
-    valHue.textContent = `${Math.round(hue)}`;
-    // Update hue color based on current hue value
-    const hueColor = `hsl(${hue}, 100%, 50%)`;
-    valHue.style.color = hueColor;
-  }
-  if (valSat) {
-    valSat.textContent = `${Math.round(sat)}`;
-    valSat.style.color = sat > 50 ? '#ff0000' : '#666666';
-  }
-  
-  // Update visual progress for kawaii sliders
-  if (bgLvl && progressLvl) {
-    const length = bgLvl.getTotalLength();
-    const progress = Math.max(0.01, level / 100); // Ensure minimum progress for visibility
-    progressLvl.setAttribute('stroke-dasharray', length);
-    progressLvl.setAttribute('stroke-dashoffset', (1 - progress) * length);
-  }
-  
-  if (bgHue && progressHue) {
-    const length = bgHue.getTotalLength();
-    const progress = Math.max(0.01, hue / 100); // Ensure minimum progress for visibility
-    progressHue.setAttribute('stroke-dasharray', length);
-    progressHue.setAttribute('stroke-dashoffset', (1 - progress) * length);
-  }
-  
-  if (bgSat && progressSat) {
-    const length = bgSat.getTotalLength();
-    const progress = Math.max(0.01, sat / 100); // Ensure minimum progress for visibility
-    progressSat.setAttribute('stroke-dasharray', length);
-    progressSat.setAttribute('stroke-dashoffset', (1 - progress) * length);
-  }
-  
-  // Also update the global power toggle button state
-  const globalPowerBtn = document.querySelector('.global-btn.btn-all-on, .global-btn.btn-all-off');
-  if (globalPowerBtn) {
-    if (isOn) {
-      globalPowerBtn.classList.remove('btn-all-off');
-      globalPowerBtn.classList.add('btn-all-on');
-      globalPowerBtn.querySelector('.icon').textContent = '🔆';
-      globalPowerBtn.querySelector('.label').textContent = 'All On';
-    } else {
-      globalPowerBtn.classList.remove('btn-all-on');
-      globalPowerBtn.classList.add('btn-all-off');
-      globalPowerBtn.querySelector('.icon').textContent = '🌙';
-      globalPowerBtn.querySelector('.label').textContent = 'All Off';
-    }
-  }
-  
-  // Update global controls if they're open
-  if (document.getElementById('modalBg')?.classList.contains('visible')) {
-    const modalBody = document.getElementById('modalBody');
-    if (modalBody && modalBody.textContent.includes('Bright')) {
-      // Global controls modal is open, update the sliders
-      console.log('Updating global controls with current state:', { isOn, level, hue, sat });
-    }
-  }
-}
+// renderGlobalControls removed - now using standard device modal system
 
-window.sendGlobalCommand = function(command, value) {
-  const targetId = window.BEDROOM_GROUP_ID; // Global controls target the Bedroom Lights group
-  let url = `${window.MAKER_API_BASE}/devices/${targetId}/${command}`;
-  if (value !== undefined) url += `/${value}`;
-  url += `?access_token=${window.ACCESS_TOKEN}`;
-  
-  fetch(url)
-    .then(res => res.text())
-    .then(() => {
-      const feedback = document.getElementById('globalFeedback');
-      if (feedback) {
-        feedback.textContent = `Global command "${command}" sent!`;
-        feedback.style.display = 'block';
-        setTimeout(() => { feedback.style.display = 'none'; }, 1800);
-      }
-      showToast(`Global command sent successfully!`, 'success');
-      // Do not fetch again; WS will update state manager. Optionally rate-limit refresh:
-      // if needed: window.deviceStateManager.refreshDevice(targetId);
-    })
-    .catch(err => {
-      console.error('Failed to send global command:', err);
-      showToast(`Failed to send command: ${err.message}`, 'error');
-    });
-}
+// sendGlobalCommand removed - now using standard device modal system
 
 // Make power toggle wrapper stable for inline handler
 window.globalPowerToggle = function() {

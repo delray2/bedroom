@@ -149,7 +149,13 @@ function stopActivityMonitoring() {
 
 function recordActivity() {
   lastActivityTime = Date.now();
-  debugLog('Activity recorded at: ' + new Date(lastActivityTime).toLocaleTimeString());
+  // debugLog('Activity recorded at: ' + new Date(lastActivityTime).toLocaleTimeString()); // Removed to prevent console flooding
+  
+  // If a modal is open, reset the timeout
+  if (activeModal) {
+    clearModalTimeout();
+    startModalTimeout();
+  }
 }
 
 // WebSocket Management
@@ -214,6 +220,12 @@ function setupActivityListeners() {
     }
   });
   
+  // Mouse events
+  document.addEventListener('mousedown', recordActivity);
+  document.addEventListener('mouseup', recordActivity);
+  document.addEventListener('mouseover', recordActivity);
+  document.addEventListener('mouseout', recordActivity);
+  
   // Touch events
   document.addEventListener('touchstart', function(e) {
     const currentTime = Date.now();
@@ -232,21 +244,59 @@ function setupActivityListeners() {
     }
   });
   
+  document.addEventListener('touchmove', recordActivity);
+  
   // Click events
   document.addEventListener('click', recordActivity);
   
   // Key events
   document.addEventListener('keydown', recordActivity);
+  document.addEventListener('keyup', recordActivity);
+  document.addEventListener('keypress', recordActivity);
+  
+  // Scroll events
+  document.addEventListener('scroll', recordActivity);
+  window.addEventListener('scroll', recordActivity);
+  
+  // Focus events
+  document.addEventListener('focus', recordActivity);
+  document.addEventListener('blur', recordActivity);
+  
+  // Form events
+  document.addEventListener('input', recordActivity);
+  document.addEventListener('change', recordActivity);
+  document.addEventListener('submit', recordActivity);
+  
+  // Wheel events
+  document.addEventListener('wheel', recordActivity);
+  
+  // Context menu
+  document.addEventListener('contextmenu', recordActivity);
+  
+  // Catch any interactions within modals specifically
+  document.addEventListener('click', function(e) {
+    // If clicking inside a modal, record activity
+    if (e.target.closest('#modalContent') || e.target.closest('#cameraModal')) {
+      recordActivity();
+    }
+  });
   
   debugLog('Activity listeners set up');
 }
 
 // Modal Event Handlers
-document.getElementById('closeModal').onclick = closeModal;
+document.getElementById('closeModal').onclick = function() {
+  recordActivity(); // Reset timeout on close button click
+  closeModal();
+};
 document.getElementById('modalBg').onclick = function(e) {
-  if (e.target === this) closeModal();
+  if (e.target === this) {
+    recordActivity(); // Reset timeout on background click
+    closeModal();
+  }
 };
 document.getElementById('backModal').onclick = function() {
+  recordActivity(); // Reset timeout on back button click
   const body = document.getElementById('modalBody');
   const prev = historyStack.pop();
   if (prev){

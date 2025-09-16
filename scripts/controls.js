@@ -17,8 +17,7 @@ function showTvModal() {
 
 // Fire TV Modal
 window.showFireTvModal = function() {
-  let html = `<div class="modal-header">Fire TV Remote</div>
-    <div class="fire-tv-remote">
+  let html = `<div class="fire-tv-remote">
       <!-- Top Row: Power, Home, Back -->
       <div class="remote-section top-row">
         <button class="remote-btn btn-power" onclick='fireTvSendCommand("power")'>

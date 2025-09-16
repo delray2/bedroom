@@ -138,11 +138,6 @@ const DEVICE_MAP = {
     type: 'remote',
     controls: ['remoteModal']
   },
-  '297': { // Roborock Robot Vacuum
-    label: 'Roborock',
-    type: 'vacuum',
-    controls: ['vacuumModal']
-  },
   '305': { // Fire TV Power Button
     label: 'FIRETVPOWERBUTTON',
     type: 'button',
@@ -195,6 +190,13 @@ const bedroomDevices = {
     capabilities: ["Configuration","Actuator","Refresh","ColorTemperature","Polling","ColorMode","ColorControl","SignalStrength","ChangeLevel","SwitchLevel","Light","Switch"],
     attributes: ["switch","level","colorTemperature","colorMode","colorName","hue","saturation","color"],
     commands: ["on","off","setLevel","setColorTemperature","setColor","setHue","setSaturation","refresh"]
+  },
+  '457': {
+    label: 'Bedroom Lights',
+    id: '457',
+    capabilities: ["Actuator","ColorTemperature","ColorMode","ColorControl","ChangeLevel","SwitchLevel","Light","Switch"],
+    attributes: ["switch","level","colorTemperature","colorMode","colorName","hue","saturation","color","groupState"],
+    commands: ["on","off","setLevel","setColorTemperature","setColor","setHue","setSaturation","startLevelChange","stopLevelChange"]
   }
 };
 
