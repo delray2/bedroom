@@ -8,11 +8,13 @@
   <meta name="theme-color" content="#232526">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="video-stream.js"></script>
+  <script>window.CONFIG = window.CONFIG || {};</script>
+  <script src="config/runtime-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" defer></script>
+  <script src="scripts/video-stream.js" defer></script>
   <link rel="stylesheet" href="styles/main.css">
   <!-- Unified API service -->
-  <script src="scripts/api.js"></script>
+  <script src="scripts/api.js" defer></script>
 </head>
 <body>
   <div class="blob1 blob"></div>
@@ -76,17 +78,16 @@
     </div>
   </div>
   <!-- External JavaScript files -->
-  <script src="statemanager/state-manager.js"></script>
-  <script src="scripts/main.js"></script>
-  <script src="scripts/modal.js"></script>
-  <script src="scripts/ui.js"></script>
-  <script src="scripts/api.js" type="module"></script>
-  <script src="scripts/ui-manager.js"></script>
-  <script src="scripts/devices.js"></script>
-  <script src="scripts/controls.js"></script>
-  <script src="scripts/camera.js"></script>
+  <script src="statemanager/state-manager.js" defer></script>
+  <script src="scripts/main.js" defer></script>
+  <script src="scripts/modal.js" defer></script>
+  <script src="scripts/ui.js" defer></script>
+  <script src="scripts/ui-manager.js" defer></script>
+  <script src="scripts/devices.js" defer></script>
+  <script src="scripts/controls.js" defer></script>
+  <script src="scripts/camera.js" defer></script>
   <script src="scripts/scenes.js" type="module"></script>
-  <script src="scripts/lifx-themes.js"></script>
-  <script src="scripts/slider-carousel.js"></script>
+  <script src="scripts/lifx-themes.js" defer></script>
+  <script src="scripts/slider-carousel.js" defer></script>
 </body>
 </html>

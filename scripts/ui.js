@@ -22,7 +22,7 @@ function showSideBtns() {
     window.initializeSideCarousel(window.BEDROOM_GROUP_ID || 457);
   }
 
-  requestAnimationFrame(positionSideCarousel);
+  scheduleSideCarouselPosition();
 }
 
 function hideSideBtns() {
@@ -65,8 +65,18 @@ function positionSideCarousel() {
   }
 }
 
-window.addEventListener('resize', positionSideCarousel);
-window.addEventListener('orientationchange', positionSideCarousel);
+let carouselPositionScheduled = false;
+function scheduleSideCarouselPosition() {
+  if (carouselPositionScheduled) return;
+  carouselPositionScheduled = true;
+  requestAnimationFrame(() => {
+    carouselPositionScheduled = false;
+    positionSideCarousel();
+  });
+}
+
+window.addEventListener('resize', scheduleSideCarouselPosition);
+window.addEventListener('orientationchange', scheduleSideCarouselPosition);
 
 function resetInactivityTimer() {
   showSideBtns();
@@ -208,7 +218,25 @@ async function refreshLockIndicator() {
 
 // --- WebSocket for real-time updates ---
 let ws = null;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = Number.POSITIVE_INFINITY;
+let reconnectTimer = null;
+
+function resolveWebSocketUrl() {
+  const explicit = window.CONFIG?.websocketUrl || window.WEBSOCKET_URL;
+  if (explicit) return explicit;
+
+  if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.hostname;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `${protocol}://${host}${port}`;
+  }
+
+  const host = window.CONFIG?.backendHost || 'localhost';
+  const port = window.CONFIG?.websocketPort || 4712;
+  const protocol = window.CONFIG?.websocketProtocol || 'ws';
+  return `${protocol}://${host}${port ? `:${port}` : ''}`;
+}
 
 // Reconnect banner
 let reconnectBanner;
@@ -237,20 +265,42 @@ function isValidWsMessage(msg) {
 let wsReconnectAttempts = 0;
 function scheduleReconnect() {
   wsReconnectAttempts++;
-  const backoff = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+  const exponent = Math.max(0, wsReconnectAttempts - 1);
+  const backoff = Math.min(1000 * Math.pow(2, exponent), 30000);
   ensureReconnectBanner().style.display = 'block';
-  setTimeout(connectWebSocket, backoff);
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connectWebSocket();
+  }, backoff);
 }
 
 function connectWebSocket() {
   try {
-    ws?.close?.();
-  } catch {}
-  ws = new WebSocket('ws://localhost:4712');
+    if (ws && ws.readyState <= 1) {
+      ws.close();
+    }
+  } catch (error) {
+    console.warn('Error closing previous WebSocket instance', error);
+  }
+
+  let targetUrl;
+  try {
+    targetUrl = resolveWebSocketUrl();
+    ws = new WebSocket(targetUrl);
+  } catch (error) {
+    console.error('Failed to create WebSocket', error);
+    scheduleReconnect();
+    return;
+  }
 
   ws.onopen = function () {
-    console.log('WebSocket connected');
+    console.log('WebSocket connected', targetUrl);
     wsReconnectAttempts = 0;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     try { ensureReconnectBanner().style.display = 'none'; } catch (e) {}
 
     // Request initial state refresh for key devices

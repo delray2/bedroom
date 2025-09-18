@@ -4,7 +4,7 @@ class VideoStream {
     this.peerConnection = null;
     this.videoElement = null;
     this.stream = null;
-    this.go2rtcUrl = 'http://192.168.4.145:1984'; // Your go2rtc server
+    this.go2rtcUrl = window.GO2RTC_URL || window.CONFIG?.go2rtcUrl || 'http://192.168.4.145:1984';
   }
 
   async initializeStream(streamName = 'reolink') {

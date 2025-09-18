@@ -1,4 +1,18 @@
 
+## Quick start on Raspberry Pi
+
+1. Install dependencies once with `npm install`.
+2. Launch the lightweight web server with `npm run server`. This serves the dashboard UI and the webhook API on port 4711 and opens a WebSocket server on port 4712.
+3. Open the dashboard in a browser pointed at your Raspberry Pi (for example `http://raspberrypi.local:4711`). The UI is fully responsive and will reconnect automatically if the network drops.
+4. Optional: run the kiosk display locally with `npm start` (Electron). The Electron entry point now reuses the same backend service so performance characteristics match the hosted version.
+
+### Configuration
+
+* Runtime values such as Hubitat Maker API base URL, access tokens, Home Assistant URL/token, go2rtc endpoint and WLED device IPs are centralised in `config/runtime-config.js`. The server keeps this file up to date when it starts, but you can override values via environment variables in a `.env` file (see `server/config.js` for available keys).
+* Client scripts read configuration from `window.CONFIG`, so updates apply consistently across the dashboard without editing multiple files.
+
+---
+
 Comprehensive Analysis of Bedroom Codebase
 Smart Home Dashboard Codebase Review
 main.js (Electron Main Process – Backend Server)
