@@ -8,9 +8,11 @@
     "install-deps": "npm install",
     "dev": "electron . --dev",
     "build": "electron-builder",
-    "test-webhook": "node test-webhook.js"
+    "test-webhook": "node test-webhook.js",
+    "server": "node server/index.js"
   },
   "dependencies": {
+    "compression": "^1.7.4",
     "dotenv": "^17.2.1",
     "electron": "25.9.8",
     "express": "^4.21.2",

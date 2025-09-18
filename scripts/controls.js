@@ -1,3 +1,20 @@
+const HOME_ASSISTANT_URL = window.HOME_ASSISTANT_URL || window.CONFIG?.homeAssistantUrl || 'http://192.168.4.145:8123';
+const HOME_ASSISTANT_TOKEN = window.HOME_ASSISTANT_TOKEN || window.CONFIG?.homeAssistantToken || '';
+
+function homeAssistantRequest(endpoint, options = {}) {
+  if (!HOME_ASSISTANT_URL) {
+    return Promise.reject(new Error('Home Assistant URL not configured'));
+  }
+  const url = `${HOME_ASSISTANT_URL}${endpoint}`;
+  const headers = Object.assign({
+    'Content-Type': 'application/json'
+  }, options.headers || {});
+  if (HOME_ASSISTANT_TOKEN && !headers.Authorization) {
+    headers.Authorization = `Bearer ${HOME_ASSISTANT_TOKEN}`;
+  }
+  return fetch(url, { ...options, headers });
+}
+
 // --- TV Modal (Fire TV and Roku TV) ---
 function showTvModal() {
   let html = `<div class="rollershade-controls">
@@ -254,12 +271,8 @@ window.fireTvSendCommand = function(cmd) {
   };
   const adbCommand = COMMAND_MAP[cmd] || String(cmd || '').toUpperCase();
   
-  fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+  homeAssistantRequest('/api/services/androidtv/adb_command', {
     method: 'POST',
-    headers: {
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify({
       entity_id: 'media_player.fire_tv_192_168_4_54',
       command: adbCommand

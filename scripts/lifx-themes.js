@@ -5,8 +5,8 @@
 
 class LIFXThemes {
     constructor() {
-        this.haUrl = 'http://192.168.4.145:8123';
-        this.accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4';
+        this.haUrl = window.HOME_ASSISTANT_URL || window.CONFIG?.homeAssistantUrl || 'http://192.168.4.145:8123';
+        this.accessToken = window.HOME_ASSISTANT_TOKEN || window.CONFIG?.homeAssistantToken || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4';
         this.beamEntity = 'light.beam';
         this.themeEntity = 'select.beam_theme';
     }

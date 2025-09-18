@@ -124,9 +124,9 @@ window.lifxScenes = [
 ];
 
 // WLED Device IPs - Direct HTTP API control
-const WLED_DEVICES = {
-  'bedroom1': '192.168.4.137',   // Bedroom WLED device 1
-  'bedroom2': '192.168.4.52'     // Bedroom WLED device 2
+const WLED_DEVICES = window.WLED_DEVICES || {
+  bedroom1: '192.168.4.137',
+  bedroom2: '192.168.4.52'
 };
 
 // Safe access to Hubitat Maker API globals
@@ -411,7 +411,7 @@ window.showGlobalControlsModal = showGlobalControlsModal;
 // Send command to BedroomLifxGOG device using Hubitat API
 function sendBedroomLightsCommand(command, value) {
   const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
-  const API_BASE = 'http://192.168.4.44/apps/api/37'; // From localUrls.md
+  const API_BASE = window.MAKER_API_BASE || 'http://192.168.4.44/apps/api/37';
   const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af'; // From localUrls.md
   
   let url = `${API_BASE}/devices/${BEDROOM_LIGHTS_ID}/${command}`;

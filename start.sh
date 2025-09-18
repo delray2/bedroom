@@ -7,5 +7,10 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Start the dashboard
-echo "Starting Hubitat Dashboard..."
-npm start 
+if [ "$1" = "server" ]; then
+    echo "Starting Hubitat Dashboard backend (headless)..."
+    npm run server
+else
+    echo "Starting Hubitat Dashboard kiosk..."
+    npm start
+fi

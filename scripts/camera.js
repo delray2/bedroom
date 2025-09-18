@@ -2,6 +2,7 @@
 let cameraModalTimeout = null;
 let videoStream = null;
 let currentVideoElement = null;
+const GO2RTC_URL = window.GO2RTC_URL || window.CONFIG?.go2rtcUrl || 'http://192.168.4.145:1984';
 
 async function showCameraModal() {
   console.log('Opening camera modal...');
@@ -81,7 +82,7 @@ async function showCameraModal() {
     // Fallback to iframe
     const iframe = document.createElement('iframe');
     iframe.id = 'reolink-snap';
-    iframe.src = 'http://192.168.4.145:1984/stream.html?src=reolink';
+    iframe.src = `${GO2RTC_URL}/stream.html?src=reolink`;
     modal.insertBefore(iframe, modal.querySelector('#closeCameraModal'));
   }
   

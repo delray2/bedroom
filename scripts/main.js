@@ -1,10 +1,86 @@
-// Hubitat API details
-const BEDROOM_GROUP_ID = '457'; // BedroomLifxGOG group (ID: 457)
-const BEDROOM_FAN2_ID = '451'; // Bedroom fan2 (ID: 451)
-const MAKER_API_BASE = 'http://192.168.4.44/apps/api/37';
-const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af';
+const DEFAULT_CONFIG = {
+  makerApiBase: 'http://192.168.4.44/apps/api/37',
+  accessToken: 'b9846a66-8bf8-457a-8353-fd16d511a0af',
+  backendBaseUrl: 'http://localhost:4711',
+  websocketUrl: 'ws://localhost:4712',
+  go2rtcUrl: 'http://192.168.4.145:1984',
+  homeAssistantUrl: 'http://192.168.4.145:8123',
+  homeAssistantToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
+  wledDevices: {
+    bedroom1: '192.168.4.137',
+    bedroom2: '192.168.4.52'
+  },
+  bedroomGroupId: '457',
+  bedroomFan2Id: '451'
+};
+
+const runtimeConfig = Object.assign({}, DEFAULT_CONFIG, window.CONFIG || {});
+
+function resolveBackendBaseUrl(config) {
+  if (config.backendBaseUrl) return config.backendBaseUrl;
+  if (window.location && window.location.origin && window.location.origin.startsWith('http')) {
+    return window.location.origin;
+  }
+  const protocol = config.backendProtocol || 'http';
+  const host = config.publicHost || config.backendHost || 'localhost';
+  const port = config.backendPort || 4711;
+  return `${protocol}://${host}${port ? `:${port}` : ''}`;
+}
+
+function resolveWebSocketUrl(config, backendBaseUrl) {
+  if (config.websocketUrl) return config.websocketUrl;
+  if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.hostname;
+    const port = window.location.port;
+    return `${wsProtocol}://${host}${port ? `:${port}` : ''}`;
+  }
+  const inferred = new URL(backendBaseUrl);
+  const wsProtocol = inferred.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${wsProtocol}//${inferred.host}`;
+}
+
+const BACKEND_BASE_URL = resolveBackendBaseUrl(runtimeConfig);
+const WEBSOCKET_URL = resolveWebSocketUrl(runtimeConfig, BACKEND_BASE_URL);
+
+const BEDROOM_GROUP_ID = runtimeConfig.bedroomGroupId || '457';
+const BEDROOM_FAN2_ID = runtimeConfig.bedroomFan2Id || '451';
+const MAKER_API_BASE = runtimeConfig.makerApiBase;
+const ACCESS_TOKEN = runtimeConfig.accessToken;
 const BEDROOM_GROUP_COMMAND_URL = (cmd) => `${MAKER_API_BASE}/devices/${BEDROOM_GROUP_ID}/${cmd}?access_token=${ACCESS_TOKEN}`;
 const BEDROOM_FAN2_STATUS_URL = `${MAKER_API_BASE}/devices/${BEDROOM_FAN2_ID}?access_token=${ACCESS_TOKEN}`;
+
+window.CONFIG = runtimeConfig;
+window.CONFIG.backendBaseUrl = BACKEND_BASE_URL;
+window.CONFIG.websocketUrl = WEBSOCKET_URL;
+window.MAKER_API_BASE = MAKER_API_BASE;
+window.ACCESS_TOKEN = ACCESS_TOKEN;
+window.BEDROOM_GROUP_ID = BEDROOM_GROUP_ID;
+window.BACKEND_BASE_URL = BACKEND_BASE_URL;
+window.WEBSOCKET_URL = WEBSOCKET_URL;
+window.GO2RTC_URL = runtimeConfig.go2rtcUrl;
+window.HOME_ASSISTANT_URL = runtimeConfig.homeAssistantUrl;
+window.HOME_ASSISTANT_TOKEN = runtimeConfig.homeAssistantToken;
+window.WLED_DEVICES = runtimeConfig.wledDevices || {};
+
+const HOME_ASSISTANT_URL = runtimeConfig.homeAssistantUrl;
+const HOME_ASSISTANT_TOKEN = runtimeConfig.homeAssistantToken;
+
+function homeAssistantRequest(endpoint, options = {}) {
+  if (!HOME_ASSISTANT_URL) {
+    return Promise.reject(new Error('Home Assistant URL not configured'));
+  }
+
+  const url = `${HOME_ASSISTANT_URL}${endpoint}`;
+  const headers = Object.assign({
+    'Content-Type': 'application/json'
+  }, options.headers || {});
+  if (HOME_ASSISTANT_TOKEN && !headers.Authorization) {
+    headers.Authorization = `Bearer ${HOME_ASSISTANT_TOKEN}`;
+  }
+
+  return fetch(url, { ...options, headers });
+}
 
 // Centralized device map with all relevant device IDs
 const DEVICE_MAP = {
@@ -339,7 +415,7 @@ async function initializeDashboard() {
 // Notify backend on load (optional)
 window.addEventListener('DOMContentLoaded', function() {
   try {
-    fetch('http://localhost:4711/api/notify', {
+    fetch(`${BACKEND_BASE_URL}/api/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event: 'dashboard_loaded', timestamp: Date.now() })
@@ -451,12 +527,8 @@ async function updatePaddleSwitch2UI() {
     // Check Fire TV state via Home Assistant
     let fireTvState = null;
     try {
-      const response = await fetch('http://192.168.4.145:8123/api/states/media_player.fire_tv_192_168_4_54', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-          'Content-Type': 'application/json'
-        }
+      const response = await homeAssistantRequest('/api/states/media_player.fire_tv_192_168_4_54', {
+        method: 'GET'
       });
       
       if (response.ok) {
@@ -537,12 +609,8 @@ if (paddleSwitch2) {
       // Check Fire TV state via Home Assistant
       let fireTvState = null;
       try {
-        const response = await fetch('http://192.168.4.145:8123/api/states/media_player.fire_tv_192_168_4_54', {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-            'Content-Type': 'application/json'
-          }
+        const response = await homeAssistantRequest('/api/states/media_player.fire_tv_192_168_4_54', {
+          method: 'GET'
         });
         
         if (response.ok) {
@@ -580,12 +648,8 @@ if (paddleSwitch2) {
         
         // Turn on Fire TV via Home Assistant
         try {
-          await fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+          await homeAssistantRequest('/api/services/androidtv/adb_command', {
             method: 'POST',
-            headers: {
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-              'Content-Type': 'application/json'
-            },
             body: JSON.stringify({
               entity_id: 'media_player.fire_tv_192_168_4_54',
               command: 'POWER'
@@ -612,12 +676,8 @@ if (paddleSwitch2) {
         
         // Turn off Fire TV via Home Assistant
         try {
-          await fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+          await homeAssistantRequest('/api/services/androidtv/adb_command', {
             method: 'POST',
-            headers: {
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-              'Content-Type': 'application/json'
-            },
             body: JSON.stringify({
               entity_id: 'media_player.fire_tv_192_168_4_54',
               command: 'POWER'
