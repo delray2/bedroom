@@ -1,4 +1,11 @@
 // Enhanced State Management for Hubitat Dashboard with Visual State Support
+const STATE_MANAGER_DEFAULT_IDS = window.configStore?.defaults?.deviceIds || { bedroomFan2Id: '451', bedroomGroupId: '457' };
+
+function resolveDeviceIdFromConfig(key, fallback) {
+  const ids = (window.CONFIG && window.CONFIG.deviceIds) || {};
+  return ids[key] || STATE_MANAGER_DEFAULT_IDS[key] || fallback;
+}
+
 class DeviceStateManager {
   constructor() {
     this.devices = new Map();
@@ -226,7 +233,7 @@ class DeviceStateManager {
   _isInGroup(groupName, idStr) {
     // Define device groups based on existing DEVICE_MAP
     const groups = {
-      bedroomLights: ['447', '450', '480', '451'] // Bed Lamp, Laundry 1, Bedroom Fan 1, Bedroom Fan 2
+      bedroomLights: ['447', '450', '480', resolveDeviceIdFromConfig('bedroomFan2Id', '451')] // Bed Lamp, Laundry 1, Bedroom Fan 1, Bedroom Fan 2
     };
     const arr = groups[groupName];
     if (!Array.isArray(arr)) return false;
@@ -381,7 +388,8 @@ class DeviceStateManager {
     // The existing paddle switch logic in main.js will handle the actual state
     // We just need to trigger a visual update
     if (typeof window.updatePaddleSwitchUI === 'function') {
-      const state = this.getDevice('457'); // BedroomLifxGOG group
+      const groupId = window.BEDROOM_GROUP_ID || (window.CONFIG?.deviceIds?.bedroomGroupId) || '457';
+      const state = this.getDevice(groupId); // BedroomLifxGOG group
       if (state && state.switch !== undefined) {
         window.updatePaddleSwitchUI(state.switch === 'on');
       }

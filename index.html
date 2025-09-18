@@ -4,15 +4,11 @@
   <meta charset="UTF-8">
   <title>Smart Wall Switch Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#232526">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="video-stream.js"></script>
-  <link rel="stylesheet" href="styles/main.css">
-  <!-- Unified API service -->
-  <script src="scripts/api.js"></script>
+  <script type="module" src="/src/pages/dashboard.js"></script>
 </head>
 <body>
   <div class="blob1 blob"></div>
@@ -49,11 +45,12 @@
     <div class="side-btns side-btns-visible" id="sideBtns">
       <button class="side-btn" title="TV" aria-label="TV" data-action="showTvModal">📺</button>
       <button class="side-btn" title="Lights" aria-label="Lights" data-action="showBubbleChartModal">💡</button>
-      <button class="side-btn" class="rollershadeSideBtn"title="Rollershade" aria-label="Rollershade" data-action="showRollershadeModal">🪟</button>
+      <button class="side-btn rollershadeSideBtn" title="Rollershade" aria-label="Rollershade" data-action="showRollershadeModal">🪟</button>
       <button class="side-btn" title="Lock" aria-label="Lock" data-action="toggleLock">🔒</button>
       <button class="side-btn" title="Camera" aria-label="Camera" data-action="showCameraModal">📷</button>
       <button class="side-btn" title="Thermostat" aria-label="Thermostat" data-action="showThermostatModal">🌡️</button>
       <button class="side-btn" title="Music" aria-label="Music" data-action="showMusicModal">🎵</button>
+      <button class="side-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button>
       <!-- Theme toggle button -->
       <button class="side-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">🌙</button>
     </div>
@@ -75,18 +72,8 @@
       <button class="close-modal" id="closeCameraModal">&times;</button>
     </div>
   </div>
-  <!-- External JavaScript files -->
-  <script src="statemanager/state-manager.js"></script>
-  <script src="scripts/main.js"></script>
-  <script src="scripts/modal.js"></script>
-  <script src="scripts/ui.js"></script>
-  <script src="scripts/api.js" type="module"></script>
-  <script src="scripts/ui-manager.js"></script>
-  <script src="scripts/devices.js"></script>
-  <script src="scripts/controls.js"></script>
-  <script src="scripts/camera.js"></script>
-  <script src="scripts/scenes.js" type="module"></script>
-  <script src="scripts/lifx-themes.js"></script>
-  <script src="scripts/slider-carousel.js"></script>
+  <noscript>
+    <p>This dashboard requires JavaScript to run. Please enable JavaScript in your browser.</p>
+  </noscript>
 </body>
 </html>

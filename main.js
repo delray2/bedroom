@@ -199,7 +199,8 @@ function createWindow() {
     skipTaskbar: true,
     autoHideMenuBar: true,
   });
-  win.loadFile('index.html');
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  win.loadFile(indexPath);
   
   // Prevent exit on escape key
   win.on('before-quit', (event) => {

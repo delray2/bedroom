@@ -10,6 +10,7 @@
   /* Carousel slider variables */
   --b: 60; --s: 70; --h: 30; --k: 3500;
   --bg: #7a7a7a; --pill: #4b4b4b; --warm: #ffb163; --cool: #bcd6ff; --cream: #fff0cf; --text: #fff;
+  --roller-shade-img: none;
 }
 
 /* Base body styles */
@@ -259,7 +260,7 @@ body {
   transition-delay: 0.3s;
 }
 .rollershadeSideBtn {
-  background-image: url('../assets/images/roller-shade.png');
+  background-image: var(--roller-shade-img, none);
   background-size: 50%;
   background-position: center;
   background-repeat: no-repeat;

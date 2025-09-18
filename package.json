@@ -4,20 +4,24 @@
   "description": "Smart Wall Switch Dashboard with Real-Time State Management",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "dev": "vite",
+    "start": "npm run build:frontend && electron .",
+    "build": "npm run build:frontend && electron-builder",
+    "build:frontend": "vite build",
+    "preview": "vite preview",
     "install-deps": "npm install",
-    "dev": "electron . --dev",
-    "build": "electron-builder",
     "test-webhook": "node test-webhook.js"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
     "electron": "25.9.8",
+    "hls.js": "^1.5.7",
     "express": "^4.21.2",
     "ws": "^8.15.1"
   },
   "devDependencies": {
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^24.0.0",
+    "vite": "^5.2.0"
   },
   "keywords": [
     "hubitat",

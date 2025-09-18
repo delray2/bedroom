@@ -1,6 +1,24 @@
 
 Comprehensive Analysis of Bedroom Codebase
 Smart Home Dashboard Codebase Review
+
+## Front-end build workflow (Vite)
+
+The dashboard front-end is bundled with [Vite](https://vitejs.dev/). Source files live under `src/` and are composed as ES modules. Two entry points power the application:
+
+- `src/pages/dashboard.js` – main kiosk UI loaded by `index.html`.
+- `src/pages/settings.js` – Hubitat configuration UI loaded by `settings.html`.
+
+Static assets that should be copied verbatim (icons, SVGs, manifest, service worker) reside in `public/`. Assets imported from JavaScript or CSS (for example the rollershade icon) live in `src/assets/` so Vite can fingerprint them.
+
+Common scripts:
+
+- `npm run dev` – start the Vite dev server for browser debugging.
+- `npm run build:frontend` – generate production bundles in `dist/`.
+- `npm start` – build the front-end and launch the Electron shell (kiosk mode).
+
+Electron now loads `dist/index.html`, so the front-end must be built at least once before running the desktop shell.
+
 main.js (Electron Main Process – Backend Server)
 Core Functionality: This Node/Electron script launches the application’s main process and a local web server for device updates. It creates an Electron browser window (1920x1080, fullscreen kiosk mode) that loads index.html. Concurrently, it starts an Express server (listening on port 4711) and a WebSocket server (on port 4712) to facilitate communication between Hubitat (the smart home hub) and the front-end UI. Key Responsibilities:
 WebSocket Broadcast: Sets up a WebSocket server to broadcast JSON messages to all connected clients (the front-end UI). It provides a helper broadcast(data) function to JSON-encode and send messages to every WebSocket client.
@@ -52,6 +70,20 @@ camera.js (camera modal logic)
 scenes.js (as a module; scene definitions and lighting “bubble chart” UI)
 The scripts (except the two marked as modules) execute in the global window context so they can define global variables and functions used across files.
 File Interactions: index.html is central to how all scripts and components come together – it provides the elements that scripts will query (getElementById, etc.) to attach event listeners or update content. For example, the side buttons and modals defined here are manipulated by ui-manager.js and modal.js. The structure in index.html also reflects data flows: e.g., the id="currentTime" element is updated by a function in scripts/main.js, the id="lockIndicator" text is updated by controls.js when the lock toggles, etc.
+
+## Configuring the Hubitat Maker API
+
+The dashboard no longer hard-codes the Maker API base URL, access token, or key device IDs. Instead, use the built-in settings page—which now includes Hubitat device discovery—to capture everything without touching source files.
+
+1. Launch the dashboard and click the new ⚙️ Settings button (or open `settings.html` directly).
+2. Enter your **Maker API Base URL** (e.g. `http://YOUR_HUB_IP/apps/api/<appId>`) and **Maker API Access Token**.
+3. Click **Discover devices** to call `/devices` on the Maker API. The results are cached locally and power the dropdowns next to each required field.
+4. Use the dropdown menus (or type manually) to assign the **Bedroom Lights Group** and **Bedroom Fan 2** device IDs. Suggestions come from the discovery list so you don’t have to guess IDs.
+5. Optionally paste a custom JSON device map to override the default dashboard bindings.
+6. Press **Save changes**. The configuration—along with the cached discovery list—is stored under the `hubitatDashboardConfig` key in `localStorage`. Reload the dashboard so every script picks up the new values.
+
+Use **Copy current config** to export the saved JSON, or **Reset to defaults** to restore the baked-in sample values and clear the cached discovery list.
+
 video-stream.js (Video Stream Handler)
 Core Functionality: This script implements a VideoStream class to handle live camera streaming, preferring WebRTC and falling back to HLS or MJPEG streams. It’s included early (before other app scripts) so that the camera modal logic can utilize it. Key Features:
 Maintains a peerConnection for WebRTC and tracks the created video element (this.videoElement) and media stream.

@@ -326,9 +326,9 @@ class LIFXThemes {
 
 // Create instance and export to window
 const lifxThemes = new LIFXThemes();
-window.lifxThemes = lifxThemes;
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = LIFXThemes;
+if (typeof window !== 'undefined') {
+    window.lifxThemes = lifxThemes;
 }
+
+export { LIFXThemes };
+export default lifxThemes;

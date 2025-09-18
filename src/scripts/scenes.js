@@ -1,11 +1,15 @@
 // Enhanced Scene System with Individual Bulb Control and LIFX Theme-Inspired Palettes
+const SCENE_DEFAULT_IDS = window.configStore?.defaults?.deviceIds || { bedroomFan2Id: '451', bedroomGroupId: '457' };
+const SCENE_BEDROOM_FAN2_ID = (window.CONFIG?.deviceIds?.bedroomFan2Id) || SCENE_DEFAULT_IDS.bedroomFan2Id || '451';
+const SCENE_BEDROOM_GROUP_ID = window.BEDROOM_GROUP_ID || (window.CONFIG?.deviceIds?.bedroomGroupId) || SCENE_DEFAULT_IDS.bedroomGroupId || '457';
+
 window.lifxScenes = [
   {
     name: 'Focusing',
     gradient: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #f8f9fa 35%, #e9ecef 70%, #dee2e6 100%)',
     bulbs: [
       { deviceId: '480', color: '#ffffff', brightness: 100, temp: 4000 }, // Bedroom Fan 1 - Pure white
-      { deviceId: '451', color: '#f8f9fa', brightness: 95, temp: 4000 },   // Bedroom Fan 2 - Soft white
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#f8f9fa', brightness: 95, temp: 4000 },   // Bedroom Fan 2 - Soft white
       { deviceId: '447', color: '#e9ecef', brightness: 90, temp: 4000 }   // Bed Lamp - Light gray
     ],
     wled: {
@@ -21,7 +25,7 @@ window.lifxScenes = [
     gradient: 'conic-gradient(from 200deg at 50% 50%, #ff6b35 0%, #f7931e 25%, #ffd23f 50%, #ff8c42 75%, #ff4757 100%)',
     bulbs: [
       { deviceId: '480', color: '#ff6b35', brightness: 80, temp: 2700 },  // Bedroom Fan 1 - Warm orange
-      { deviceId: '451', color: '#ffd23f', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Golden yellow
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#ffd23f', brightness: 70, temp: 3000 },  // Bedroom Fan 2 - Golden yellow
       { deviceId: '447', color: '#ff8c42', brightness: 60, temp: 3500 }   // Bed Lamp - Soft orange
     ],
     wled: {
@@ -36,7 +40,7 @@ window.lifxScenes = [
     gradient: 'radial-gradient(circle at 40% 30%, #4a90e2 0%, #7bb3f0 25%, #a8d0f0 50%, #c7e9f1 75%, #e8f4fd 100%)',
     bulbs: [
       { deviceId: '480', color: '#4a90e2', brightness: 85, temp: 6500 },  // Bedroom Fan 1 - Deep blue
-      { deviceId: '451', color: '#7bb3f0', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Sky blue
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#7bb3f0', brightness: 75, temp: 7000 },  // Bedroom Fan 2 - Sky blue
       { deviceId: '447', color: '#a8d0f0', brightness: 65, temp: 6000 }   // Bed Lamp - Light blue
     ],
     wled: {
@@ -51,7 +55,7 @@ window.lifxScenes = [
     gradient: 'radial-gradient(circle at 60% 40%, #2d5016 0%, #4a7c59 25%, #6b8e23 50%, #9acd32 75%, #f0f8e8 100%)',
     bulbs: [
       { deviceId: '480', color: '#2d5016', brightness: 80, temp: 5000 },  // Bedroom Fan 1 - Dark green
-      { deviceId: '451', color: '#4a7c59', brightness: 70, temp: 5500 },  // Bedroom Fan 2 - Forest green
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#4a7c59', brightness: 70, temp: 5500 },  // Bedroom Fan 2 - Forest green
       { deviceId: '447', color: '#6b8e23', brightness: 60, temp: 5200 }   // Bed Lamp - Olive green
     ],
     wled: {
@@ -66,7 +70,7 @@ window.lifxScenes = [
     gradient: 'radial-gradient(circle at 50% 45%, #ffd700 0%, #ffb347 25%, #ff8c42 50%, #ff6b35 75%, #ff4757 100%)',
     bulbs: [
       { deviceId: '480', color: '#ffd700', brightness: 60, temp: 2200 },  // Bedroom Fan 1 - Warm yellow
-      { deviceId: '451', color: '#ffb347', brightness: 50, temp: 2500 },  // Bedroom Fan 2 - Orange
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#ffb347', brightness: 50, temp: 2500 },  // Bedroom Fan 2 - Orange
       { deviceId: '447', color: '#ff8c42', brightness: 40, temp: 2800 }   // Bed Lamp - Soft orange
     ],
     wled: {
@@ -81,7 +85,7 @@ window.lifxScenes = [
     gradient: 'conic-gradient(from 90deg at 50% 50%, #ff61a6 0%, #a18cd1 25%, #4a90e2 50%, #7b68ee 75%, #9370db 100%)',
     bulbs: [
       { deviceId: '480', color: '#ff61a6', brightness: 75, temp: 3500 },  // Bedroom Fan 1 - Magenta
-      { deviceId: '451', color: '#a18cd1', brightness: 65, temp: 4000 },  // Bedroom Fan 2 - Purple
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#a18cd1', brightness: 65, temp: 4000 },  // Bedroom Fan 2 - Purple
       { deviceId: '447', color: '#4a90e2', brightness: 55, temp: 4500 }   // Bed Lamp - Blue
     ],
     wled: {
@@ -96,7 +100,7 @@ window.lifxScenes = [
     gradient: 'conic-gradient(at 50% 50%, #ffeb3b 0%, #ff9800 20%, #ff5722 40%, #e91e63 60%, #9c27b0 80%, #3f51b5 100%)',
     bulbs: [
       { deviceId: '480', color: '#ffeb3b', brightness: 85, temp: 4000 },  // Bedroom Fan 1 - Bright yellow
-      { deviceId: '451', color: '#ff9800', brightness: 80, temp: 4200 },  // Bedroom Fan 2 - Orange
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#ff9800', brightness: 80, temp: 4200 },  // Bedroom Fan 2 - Orange
       { deviceId: '447', color: '#e91e63', brightness: 75, temp: 4500 }   // Bed Lamp - Pink
     ],
     wled: {
@@ -111,7 +115,7 @@ window.lifxScenes = [
     gradient: 'radial-gradient(circle at 40% 60%, #ff69b4 0%, #ff1493 25%, #ffc0cb 50%, #ffe4e1 75%, #fff0f5 100%)',
     bulbs: [
       { deviceId: '480', color: '#ff69b4', brightness: 65, temp: 3000 },  // Bedroom Fan 1 - Hot pink
-      { deviceId: '451', color: '#ffc0cb', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
+      { deviceId: SCENE_BEDROOM_FAN2_ID, color: '#ffc0cb', brightness: 55, temp: 3200 },  // Bedroom Fan 2 - Light pink
       { deviceId: '447', color: '#ff1493', brightness: 45, temp: 3100 }   // Bed Lamp - Deep pink
     ],
     wled: {
@@ -381,14 +385,15 @@ window.applyWledEffect = function(id, name) {
 }
 
 function bubbleChartBubbleClick(label, id) {
-  if (['447','450','449','451'].includes(id)) {
+  const clickableIds = ['447', '450', '449', SCENE_BEDROOM_FAN2_ID];
+  if (clickableIds.includes(id)) {
     openDeviceModal(label, id, true);
   } else if (id === 'scenes') {
     showScenesModal();
   } else if (id === 'wled') {
     showWledEffectsModal();
   } else if (id === 'global') {
-    openDeviceModal('Bedroom Lights', '457', true);
+    openDeviceModal('Bedroom Lights', SCENE_BEDROOM_GROUP_ID, true);
   } else {
     showModal(`<div class="modal-header">${label}</div>
       <div class="coming-soon">Controls for <b>${label}</b> coming soon...</div>`, { showBack: true });
@@ -398,7 +403,7 @@ function bubbleChartBubbleClick(label, id) {
 // Global Controls Modal - Now uses standard device modal system
 // This function is kept for backward compatibility but redirects to standard device modal
 function showGlobalControlsModal() {
-  openDeviceModal('Bedroom Lights', '457', true);
+  openDeviceModal('Bedroom Lights', SCENE_BEDROOM_GROUP_ID, true);
 }
 
 
@@ -410,9 +415,14 @@ window.showGlobalControlsModal = showGlobalControlsModal;
 
 // Send command to BedroomLifxGOG device using Hubitat API
 function sendBedroomLightsCommand(command, value) {
-  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
-  const API_BASE = 'http://192.168.4.44/apps/api/37'; // From localUrls.md
-  const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af'; // From localUrls.md
+  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID || SCENE_BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
+  const API_BASE = window.MAKER_API_BASE;
+  const ACCESS_TOKEN = window.ACCESS_TOKEN;
+
+  if (!API_BASE || !ACCESS_TOKEN || !BEDROOM_LIGHTS_ID) {
+    showToast('Hubitat settings are incomplete. Update them in Settings.', 'error');
+    throw new Error('Missing Maker API configuration');
+  }
   
   let url = `${API_BASE}/devices/${BEDROOM_LIGHTS_ID}/${command}`;
   if (value !== undefined) {
@@ -439,7 +449,8 @@ function sendBedroomLightsCommand(command, value) {
 // Make power toggle wrapper stable for inline handler
 window.globalPowerToggle = function() {
   // Fetch current, then invert
-  fetch(`${window.MAKER_API_BASE}/devices/${window.BEDROOM_GROUP_ID_ID}?access_token=${window.ACCESS_TOKEN}`)
+  const groupId = window.BEDROOM_GROUP_ID || SCENE_BEDROOM_GROUP_ID;
+  fetch(`${window.MAKER_API_BASE}/devices/${groupId}?access_token=${window.ACCESS_TOKEN}`)
     .then(r => r.json())
     .then(dev => {
       const isOn = (Array.isArray(dev.attributes) ? (dev.attributes.find(a => a.name === 'switch')?.currentValue) : dev.attributes?.switch) === 'on';

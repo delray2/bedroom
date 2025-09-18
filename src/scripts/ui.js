@@ -2,6 +2,13 @@
 // UI Utilities + Realtime Layer
 // ==============================
 
+const CONFIG_DEFAULT_IDS = window.configStore?.defaults?.deviceIds || { bedroomGroupId: '457', bedroomFan2Id: '451' };
+
+function getConfiguredDeviceId(key, fallback) {
+  const ids = (window.CONFIG && window.CONFIG.deviceIds) || {};
+  return ids[key] || CONFIG_DEFAULT_IDS[key] || fallback;
+}
+
 // --- Side buttons inactivity logic ---
 const sideBtns = document.getElementById('sideBtns');
 // NOTE: keep the DOM id spelling as-is to match HTML/CSS (#side-carosel)
@@ -148,6 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn.id === 'themeToggle') return;
     replaceEmojiNode(btn);
   });
+
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.href = 'settings.html';
+    });
+  }
 
   // Replace inline icon spans inside bubble buttons/modal actions
   document.querySelectorAll('.bubble-btn .icon, .power-icon, #lockIndicator').forEach(replaceEmojiNode);
@@ -427,7 +443,8 @@ function handleDeviceNotification(payload) {
 // Handle LRGroup updates (example: Fan 2)
 function handleLRGroupUpdate(payload) {
   console.log('LRGroup update received:', payload);
-  if (String(payload.deviceId) === '451') {
+  const bedroomFan2Id = String(getConfiguredDeviceId('bedroomFan2Id', '451'));
+  if (String(payload.deviceId) === bedroomFan2Id) {
     if (payload.value !== undefined || payload.name === 'switch') {
       if (typeof window.setPaddleSwitch === 'function') {
         const v = payload.value ?? payload.currentValue ?? payload.value;
@@ -452,7 +469,7 @@ function handleBulkDeviceRefreshRequest(deviceIds) {
 // Request initial state refresh for key devices
 function requestInitialStateRefresh() {
   const keyDevices = [
-    '451', // Bedroom Fan 2
+    getConfiguredDeviceId('bedroomFan2Id', '451'), // Bedroom Fan 2
     '509', // Front Door Lock
     window.BEDROOM_GROUP_ID, // BedroomLifxGOG
     '447', // Bed Lamp
