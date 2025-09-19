@@ -2,6 +2,92 @@
 // UI Utilities + Realtime Layer
 // ==============================
 
+const CONFIG_DEFAULT_IDS = window.configStore?.defaults?.deviceIds || { bedroomGroupId: '457', bedroomFan2Id: '451' };
+
+const UA = (navigator.userAgent || '').toLowerCase();
+const isLikelyRaspberryPi = /raspberry|armv6l|armv7l|armv8|aarch64|linux arm/.test(UA);
+const hardwareConcurrency = typeof navigator.hardwareConcurrency === 'number' ? navigator.hardwareConcurrency : 0;
+const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isLowPowerDevice = Boolean(
+  window.IS_LOW_RESOURCE_DEVICE ||
+  isLikelyRaspberryPi ||
+  (hardwareConcurrency > 0 && hardwareConcurrency <= 4) ||
+  prefersReducedMotion
+);
+
+window.IS_LOW_RESOURCE_DEVICE = isLowPowerDevice;
+
+if (isLowPowerDevice) {
+  const applyLowPowerClass = () => {
+    document.body.classList.add('low-power');
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyLowPowerClass, { once: true });
+  } else {
+    applyLowPowerClass();
+  }
+}
+
+function setupAutoHidingChrome() {
+  const chrome = document.getElementById('appChrome');
+  if (!chrome) return;
+
+  const hotspot = document.getElementById('appChromeHotspot');
+  const baseDelay = isLowPowerDevice ? 4200 : 3600;
+  let hideTimer = null;
+
+  const scheduleHide = (delay = baseDelay) => {
+    clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => {
+      if (chrome.matches(':hover') || chrome.contains(document.activeElement)) {
+        scheduleHide(1600);
+        return;
+      }
+      chrome.classList.remove('visible');
+      chrome.dataset.visible = 'false';
+    }, delay);
+  };
+
+  const reveal = () => {
+    if (!chrome.classList.contains('visible')) {
+      chrome.classList.add('visible');
+      chrome.dataset.visible = 'true';
+    }
+    scheduleHide();
+  };
+
+  const handleTouchReveal = (event) => {
+    const point = event.touches?.[0] || event.changedTouches?.[0];
+    if (point && point.clientY <= 48) {
+      reveal();
+    }
+  };
+
+  hotspot?.addEventListener('pointerenter', reveal, { passive: true });
+  hotspot?.addEventListener('pointerdown', reveal, { passive: true });
+  document.addEventListener('mousemove', (event) => {
+    if (event.clientY <= 18) {
+      reveal();
+    }
+  }, { passive: true });
+  document.addEventListener('touchstart', handleTouchReveal, { passive: true });
+
+  chrome.addEventListener('mouseenter', () => scheduleHide());
+  chrome.addEventListener('focusin', () => scheduleHide());
+  chrome.addEventListener('mouseleave', () => scheduleHide(1400));
+  chrome.addEventListener('focusout', () => scheduleHide(1400));
+  window.addEventListener('blur', () => scheduleHide(1000));
+  window.addEventListener('focus', () => scheduleHide());
+
+  reveal();
+}
+
+function getConfiguredDeviceId(key, fallback) {
+  const ids = (window.CONFIG && window.CONFIG.deviceIds) || {};
+  return ids[key] || CONFIG_DEFAULT_IDS[key] || fallback;
+}
+
 // --- Side buttons inactivity logic ---
 const sideBtns = document.getElementById('sideBtns');
 // NOTE: keep the DOM id spelling as-is to match HTML/CSS (#side-carosel)
@@ -95,6 +181,8 @@ function onFirstActivity() {
 
 // Initialize side button functionality
 document.addEventListener('DOMContentLoaded', () => {
+  setupAutoHidingChrome();
+
   activityEvents.forEach(event => {
     window.addEventListener(event, onFirstActivity, true);
   });
@@ -148,6 +236,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn.id === 'themeToggle') return;
     replaceEmojiNode(btn);
   });
+
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.href = 'settings.html';
+    });
+  }
 
   // Replace inline icon spans inside bubble buttons/modal actions
   document.querySelectorAll('.bubble-btn .icon, .power-icon, #lockIndicator').forEach(replaceEmojiNode);
@@ -427,7 +524,8 @@ function handleDeviceNotification(payload) {
 // Handle LRGroup updates (example: Fan 2)
 function handleLRGroupUpdate(payload) {
   console.log('LRGroup update received:', payload);
-  if (String(payload.deviceId) === '451') {
+  const bedroomFan2Id = String(getConfiguredDeviceId('bedroomFan2Id', '451'));
+  if (String(payload.deviceId) === bedroomFan2Id) {
     if (payload.value !== undefined || payload.name === 'switch') {
       if (typeof window.setPaddleSwitch === 'function') {
         const v = payload.value ?? payload.currentValue ?? payload.value;
@@ -452,7 +550,7 @@ function handleBulkDeviceRefreshRequest(deviceIds) {
 // Request initial state refresh for key devices
 function requestInitialStateRefresh() {
   const keyDevices = [
-    '451', // Bedroom Fan 2
+    getConfiguredDeviceId('bedroomFan2Id', '451'), // Bedroom Fan 2
     '509', // Front Door Lock
     window.BEDROOM_GROUP_ID, // BedroomLifxGOG
     '447', // Bed Lamp

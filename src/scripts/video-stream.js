@@ -1,3 +1,5 @@
+import Hls from 'hls.js';
+
 // WebRTC Video Streaming Module
 class VideoStream {
   constructor() {
@@ -139,9 +141,9 @@ class VideoStream {
   }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VideoStream;
-} else {
+// Expose globally for legacy consumers while using ES modules
+if (typeof window !== 'undefined') {
   window.VideoStream = VideoStream;
 }
+
+export default VideoStream;

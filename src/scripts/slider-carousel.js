@@ -9,6 +9,12 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const map = (v, a, b, c, d) => ((v - a) / (b - a)) * (d - c) + c;
 const kelvinToHue = k => clamp(map(k, K_MIN, K_MAX, H_MIN, H_MAX), 0, 360);
 const hueToKelvin = h => Math.round(clamp(map(h, H_MIN, H_MAX, K_MIN, K_MAX), K_MIN, K_MAX));
+const DEFAULT_IDS = window.configStore?.defaults?.deviceIds || { bedroomGroupId: '457' };
+
+function resolveBedroomGroupId() {
+  const ids = (window.CONFIG && window.CONFIG.deviceIds) || {};
+  return window.BEDROOM_GROUP_ID || ids.bedroomGroupId || DEFAULT_IDS.bedroomGroupId || '457';
+}
 
 // Initialize the slider carousel (main/modal)
 function initializeSliderCarousel(deviceId = null) {
@@ -26,7 +32,7 @@ function initializeSliderCarousel(deviceId = null) {
   carousel.innerHTML = '';
 
   // Determine target device ID - use provided deviceId or default to bedroom group
-  const targetDeviceId = deviceId || window.BEDROOM_GROUP_ID || '457';
+  const targetDeviceId = deviceId || resolveBedroomGroupId();
 
   // Create carousel HTML
   const carouselHTML = `
@@ -121,7 +127,7 @@ function initializeSideCarousel(deviceId = null) {
   carousel.innerHTML = '';
 
   // Determine target device ID - use provided deviceId or default to bedroom group
-  const targetDeviceId = deviceId || window.BEDROOM_GROUP_ID || '457';
+  const targetDeviceId = deviceId || resolveBedroomGroupId();
 
   // Create carousel HTML with unique IDs for side carousel
   const carouselHTML = `
@@ -393,7 +399,8 @@ function loadDeviceState(deviceId) {
 
 // Send command to device (shared)
 function sendDeviceCommand(deviceId, command, value) {
-  const API_BASE = window.MAKER_API_BASE || 'http://192.168.4.44/apps/api/37';
+  const defaultBase = window.configStore?.defaults?.makerApiBase || '';
+  const API_BASE = window.MAKER_API_BASE || defaultBase;
   const ACCESS_TOKEN = window.ACCESS_TOKEN || '';
   if (!API_BASE || !ACCESS_TOKEN) {
     console.warn('Missing API base or access token; aborting command.');

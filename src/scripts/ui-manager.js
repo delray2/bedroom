@@ -1,4 +1,11 @@
 // UI Manager Class for handling modal interactions and bubble chart functionality
+const DEFAULT_DEVICE_IDS = window.configStore?.defaults?.deviceIds || { bedroomGroupId: '457', bedroomFan2Id: '451' };
+
+function getConfigDeviceId(key, fallback) {
+  const ids = (window.CONFIG && window.CONFIG.deviceIds) || {};
+  return ids[key] || DEFAULT_DEVICE_IDS[key] || fallback;
+}
+
 class UIManager {
   constructor() {
     this.initializeEventListeners();
@@ -159,7 +166,7 @@ class UIManager {
       { label: 'Bed Lamp', id: '447', icon: '💡' },
       { label: 'Laundry 1', id: '450', icon: '💡' },
       { label: 'Bedroom Fan 1', id: '480', icon: '💡' },
-      { label: 'Bedroom Fan 2', id: '451', icon: '💡' },
+      { label: 'Bedroom Fan 2', id: getConfigDeviceId('bedroomFan2Id', '451'), icon: '💡' },
       { label: 'Scenes', id: 'scenes', icon: '🎬' },
       { label: 'WLED Effects', id: 'wled', icon: '✨' },
       { label: 'Global', id: 'global', icon: '🌐' }
@@ -186,14 +193,16 @@ class UIManager {
   }
 
   handleBubbleClick(label, id) {
-    if (['447','450','480','451'].includes(id)) {
+    const dynamicDeviceIds = ['447', '450', '480', getConfigDeviceId('bedroomFan2Id', '451')];
+    if (dynamicDeviceIds.includes(id)) {
       this.showDeviceModal(label, id, true);
     } else if (id === 'scenes') {
       this.showScenesModal();
     } else if (id === 'wled') {
       this.showWledModal();
     } else if (id === 'global') {
-      this.showDeviceModal('Bedroom Lights', '457', true);
+      const groupId = window.BEDROOM_GROUP_ID || getConfigDeviceId('bedroomGroupId', '457');
+      this.showDeviceModal('Bedroom Lights', groupId, true);
     } else {
       this.showModal(`<h2>${label}</h2><div class="coming-soon">Controls for <b>${label}</b> coming soon...</div>`, {
         showBack: true,
@@ -319,11 +328,12 @@ class UIManager {
 
 
   getDeviceCapabilities(deviceId) {
+    const fan2Id = getConfigDeviceId('bedroomFan2Id', '451');
     const deviceMap = {
       '447': ['Switch', 'SwitchLevel', 'ColorControl'],
       '450': ['Switch', 'SwitchLevel', 'ColorControl'],
       '449': ['Switch', 'SwitchLevel', 'ColorControl'],
-      '451': ['Switch', 'SwitchLevel', 'ColorControl']
+      [fan2Id]: ['Switch', 'SwitchLevel', 'ColorControl']
     };
     return deviceMap[deviceId] || [];
   }
@@ -656,34 +666,19 @@ class UIManager {
     }
   }
 
-  // Inject `scripts/scenes.js` as a module and wait until its globals are available
+  // Dynamically import the scenes module when needed
   _ensureScenesLoaded() {
     if (window.sceneManager || window.showGlobalControlsModal) {
       return Promise.resolve();
     }
-    if (this._scenesLoadingPromise) return this._scenesLoadingPromise;
 
-    this._scenesLoadingPromise = new Promise((resolve) => {
-      // If a module script for scenes is already present, just poll briefly
-      const existing = Array.from(document.scripts).some(s => s.src && s.src.includes('scripts/scenes.js'));
-      if (existing) {
-        const start = Date.now();
-        const check = () => {
-          if (window.sceneManager || window.showGlobalControlsModal) return resolve();
-          if (Date.now() - start > 2000) return resolve();
-          setTimeout(check, 50);
-        };
-        check();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'scripts/scenes.js';
-      script.onload = () => resolve();
-      script.onerror = () => resolve();
-      document.head.appendChild(script);
-    });
+    if (!this._scenesLoadingPromise) {
+      this._scenesLoadingPromise = import('./scenes.js')
+        .catch((error) => {
+          console.error('Failed to load scenes module', error);
+        })
+        .then(() => {});
+    }
 
     return this._scenesLoadingPromise;
   }

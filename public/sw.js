@@ -2,9 +2,8 @@ const CACHE_NAME = 'hubitat-dashboard-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/main.js',
-  '/video-rtc.js',
-  '/video-stream.js'
+  '/settings.html',
+  '/sliders.html'
 ];
 
 self.addEventListener('install', event => {

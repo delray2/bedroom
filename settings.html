@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hubitat Integration Settings</title>
+  <script type="module" src="/src/pages/settings.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Hubitat Integration Settings</h1>
+      <div class="actions">
+        <a class="back-link" href="index.html" aria-label="Back to dashboard">⟵ Back to dashboard</a>
+      </div>
+    </header>
+
+    <p class="helper-text">Update your Hubitat Maker API credentials and key device IDs. Changes are stored locally in your browser/Electron profile. After saving, reload the dashboard for the new settings to take effect.</p>
+
+    <div id="statusBanner" class="status-banner" role="status" aria-live="polite"></div>
+
+    <form id="settingsForm">
+      <section class="field-group">
+        <label for="makerApiBase">Maker API Base URL</label>
+        <input type="text" id="makerApiBase" name="makerApiBase" placeholder="e.g. http://192.168.1.100/apps/api/123" required>
+        <p class="helper-text">This is the Hubitat Maker API endpoint without any trailing slash or device segments.</p>
+      </section>
+
+      <section class="field-group">
+        <label for="accessToken">Maker API Access Token</label>
+        <input type="password" id="accessToken" name="accessToken" placeholder="Paste your Maker API access token" required>
+        <p class="helper-text">Stored securely in local storage. The dashboard only uses it locally to talk to your Hubitat hub.</p>
+      </section>
+
+      <section class="field-group">
+        <label for="bedroomGroupId">Bedroom Lights Group Device ID</label>
+        <div class="field-inline">
+          <input type="text" id="bedroomGroupId" name="bedroomGroupId" placeholder="e.g. 457" required list="deviceSuggestions" autocomplete="off">
+          <select id="bedroomGroupSelect" class="device-select" data-placeholder="Select from discovery" aria-label="Select bedroom lights group from discovery">
+            <option value="">Select from discovery</option>
+          </select>
+        </div>
+        <p class="helper-text">Choose from the discovery list or type the Hubitat device ID manually.</p>
+      </section>
+
+      <section class="field-group">
+        <label for="bedroomFan2Id">Bedroom Fan 2 Device ID</label>
+        <div class="field-inline">
+          <input type="text" id="bedroomFan2Id" name="bedroomFan2Id" placeholder="e.g. 451" required list="deviceSuggestions" autocomplete="off">
+          <select id="bedroomFan2Select" class="device-select" data-placeholder="Select from discovery" aria-label="Select bedroom fan 2 from discovery">
+            <option value="">Select from discovery</option>
+          </select>
+        </div>
+        <p class="helper-text">Use discovery to avoid guessing IDs. The dropdown lists devices returned by your Hubitat Maker API.</p>
+      </section>
+
+      <section class="field-group">
+        <label for="deviceMap">Custom Device Map (optional)</label>
+        <textarea id="deviceMap" name="deviceMap" placeholder="Paste JSON to override the default device map"></textarea>
+        <p class="helper-text">Leave blank to use the built-in defaults. Provide a JSON object keyed by Hubitat device IDs (strings) describing label, type, and control bindings.</p>
+      </section>
+
+      <section class="discovery-panel" aria-labelledby="discoveryHeading">
+        <div class="discovery-header">
+          <h2 id="discoveryHeading">Discover devices from Hubitat</h2>
+          <button type="button" id="discoverDevices" class="secondary">Discover devices</button>
+        </div>
+        <p class="helper-text">We call the Hubitat Maker API using the base URL and access token above to list your authorized devices. Results are cached locally so you can assign device IDs without editing code.</p>
+        <div id="discoveryStatus" class="discovery-status" role="status" aria-live="polite"></div>
+        <div id="discoveryResults" class="discovery-results" aria-live="polite"></div>
+      </section>
+
+      <datalist id="deviceSuggestions"></datalist>
+
+      <div class="button-row">
+        <button type="submit" class="primary">Save changes</button>
+        <button type="button" id="copyConfig" class="secondary">Copy current config</button>
+        <button type="button" id="resetDefaults" class="danger">Reset to defaults</button>
+      </div>
+    </form>
+
+    <section class="summary-card" aria-live="polite">
+      <h2>Active configuration</h2>
+      <ul class="summary-list" id="configSummary"></ul>
+    </section>
+  </main>
+  <noscript>
+    <p>This settings page requires JavaScript to manage your Hubitat integration.</p>
+  </noscript>
+</body>
+</html>

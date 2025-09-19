@@ -1,13 +1,23 @@
-// Hubitat API details
-const BEDROOM_GROUP_ID = '457'; // BedroomLifxGOG group (ID: 457)
-const BEDROOM_FAN2_ID = '451'; // Bedroom fan2 (ID: 451)
-const MAKER_API_BASE = 'http://192.168.4.44/apps/api/37';
-const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af';
+// Hubitat API details (configurable via settings)
+const DEFAULT_IDS = (window.configStore?.defaults?.deviceIds) || {
+  bedroomGroupId: '457',
+  bedroomFan2Id: '451'
+};
+const DEFAULT_MAKER_API_BASE = window.configStore?.defaults?.makerApiBase || 'http://192.168.4.44/apps/api/37';
+const DEFAULT_ACCESS_TOKEN = window.configStore?.defaults?.accessToken || 'b9846a66-8bf8-457a-8353-fd16d511a0af';
+
+const CONFIG = window.CONFIG || {};
+const DEVICE_IDS = { ...DEFAULT_IDS, ...(CONFIG.deviceIds || {}) };
+
+const BEDROOM_GROUP_ID = DEVICE_IDS.bedroomGroupId; // BedroomLifxGOG group (ID configurable)
+const BEDROOM_FAN2_ID = DEVICE_IDS.bedroomFan2Id; // Bedroom fan2 (ID configurable)
+const MAKER_API_BASE = CONFIG.makerApiBase || DEFAULT_MAKER_API_BASE;
+const ACCESS_TOKEN = CONFIG.accessToken || DEFAULT_ACCESS_TOKEN;
 const BEDROOM_GROUP_COMMAND_URL = (cmd) => `${MAKER_API_BASE}/devices/${BEDROOM_GROUP_ID}/${cmd}?access_token=${ACCESS_TOKEN}`;
 const BEDROOM_FAN2_STATUS_URL = `${MAKER_API_BASE}/devices/${BEDROOM_FAN2_ID}?access_token=${ACCESS_TOKEN}`;
 
 // Centralized device map with all relevant device IDs
-const DEVICE_MAP = {
+const DEFAULT_DEVICE_MAP = {
   // Main control devices
   [BEDROOM_GROUP_ID]: { // BedroomLifxGOG - Main paddle switch controls this
     label: 'Bedroom Lights',
@@ -16,7 +26,7 @@ const DEVICE_MAP = {
   },
   
   // Bedroom lights
-  '451': { // Bedroom Fan 2
+  [BEDROOM_FAN2_ID]: { // Bedroom Fan 2
     label: 'Bedroom Fan 2',
     type: 'light',
     controls: ['deviceModal', 'scenes']
@@ -155,6 +165,10 @@ const DEVICE_MAP = {
   }
 };
 
+const DEVICE_MAP = (CONFIG.deviceMap && Object.keys(CONFIG.deviceMap).length)
+  ? CONFIG.deviceMap
+  : DEFAULT_DEVICE_MAP;
+
 // Make important constants available to other scripts (including ES modules)
 window.MAKER_API_BASE = MAKER_API_BASE;
 window.ACCESS_TOKEN = ACCESS_TOKEN;
@@ -184,16 +198,16 @@ const bedroomDevices = {
     attributes: ["switch","level","colorTemperature","colorMode","colorName","hue","saturation","color"],
     commands: ["on","off","setLevel","setColorTemperature","setColor","setHue","setSaturation","refresh"]
   },
-  '451': {
+  [BEDROOM_FAN2_ID]: {
     label: 'Bedroom Fan 2',
-    id: '451',
+    id: BEDROOM_FAN2_ID,
     capabilities: ["Configuration","Actuator","Refresh","ColorTemperature","Polling","ColorMode","ColorControl","SignalStrength","ChangeLevel","SwitchLevel","Light","Switch"],
     attributes: ["switch","level","colorTemperature","colorMode","colorName","hue","saturation","color"],
     commands: ["on","off","setLevel","setColorTemperature","setColor","setHue","setSaturation","refresh"]
   },
-  '457': {
+  [BEDROOM_GROUP_ID]: {
     label: 'Bedroom Lights',
-    id: '457',
+    id: BEDROOM_GROUP_ID,
     capabilities: ["Actuator","ColorTemperature","ColorMode","ColorControl","ChangeLevel","SwitchLevel","Light","Switch"],
     attributes: ["switch","level","colorTemperature","colorMode","colorName","hue","saturation","color","groupState"],
     commands: ["on","off","setLevel","setColorTemperature","setColor","setHue","setSaturation","startLevelChange","stopLevelChange"]
@@ -445,7 +459,7 @@ async function updatePaddleSwitch2UI() {
   
   try {
     // Check current states of all devices
-    const bedroomLightsState = await window.apiService.getDevice('457'); // Bedroom Lights
+    const bedroomLightsState = await window.apiService.getDevice(BEDROOM_GROUP_ID); // Bedroom Lights
     const bedroomTvState = await window.apiService.getDevice('473'); // Bedroom tv (94E742) - Roku TV
     
     // Check Fire TV state via Home Assistant
@@ -531,7 +545,7 @@ if (paddleSwitch2) {
     
     try {
       // Check current states of all devices
-      const bedroomLightsState = await window.apiService.getDevice('457'); // Bedroom Lights
+      const bedroomLightsState = await window.apiService.getDevice(BEDROOM_GROUP_ID); // Bedroom Lights
       const bedroomTvState = await window.apiService.getDevice('473'); // Bedroom tv (94E742) - Roku TV
       
       // Check Fire TV state via Home Assistant
@@ -573,7 +587,7 @@ if (paddleSwitch2) {
         console.log('At least one device is off - turning everything on');
         
         // Turn on bedroom lights
-        await window.apiService.sendDeviceCommand('457', 'on');
+        await window.apiService.sendDeviceCommand(BEDROOM_GROUP_ID, 'on');
         
         // Turn on bedroom TV (Roku TV)
         await window.apiService.sendDeviceCommand('473', 'on');
@@ -605,7 +619,7 @@ if (paddleSwitch2) {
         console.log('All devices are on - turning everything off');
         
         // Turn off bedroom lights
-        await window.apiService.sendDeviceCommand('457', 'off');
+        await window.apiService.sendDeviceCommand(BEDROOM_GROUP_ID, 'off');
         
         // Turn off bedroom TV (Roku TV)
         await window.apiService.sendDeviceCommand('473', 'off');
@@ -673,7 +687,7 @@ function handleDeviceStateUpdate(deviceId, attributes) {
   }
 
   // Update paddle switch 2 if this is a device it controls
-if ((deviceId === '457' || deviceId === '473') && attributes.switch !== undefined) {
+if ((deviceId === BEDROOM_GROUP_ID || deviceId === '473') && attributes.switch !== undefined) {
   // Check if we should update paddle switch 2 based on overall state
   if (typeof window.updatePaddleSwitch2UI === 'function') {
     window.updatePaddleSwitch2UI();
