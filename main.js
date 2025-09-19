@@ -1,7 +1,34 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const { WebSocketServer } = require('ws');
+
+const isArm = process.arch.startsWith('arm');
+const isLinux = process.platform === 'linux';
+let isRaspberryPi = false;
+
+if (isLinux && isArm) {
+  try {
+    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8').toLowerCase();
+    isRaspberryPi = /raspberry\s+pi/.test(cpuInfo) || /bcm27\d{2}/.test(cpuInfo);
+  } catch (error) {
+    console.warn('Unable to inspect /proc/cpuinfo for Raspberry Pi detection:', error.message);
+  }
+}
+
+const lowResourceMode = isRaspberryPi || process.env.LOW_RESOURCE_MODE === '1';
+
+if (lowResourceMode) {
+  app.commandLine.appendSwitch('enable-low-end-device-mode');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('webrtc-max-cpu-consumption-percentage', '60');
+  app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder,VaapiVideoEncoder');
+  process.env.LOW_RESOURCE_MODE = '1';
+  console.log('Low-resource mode enabled (Raspberry Pi optimizations active).');
+}
 
 // --- WebSocket server setup ---
 const wss = new WebSocketServer({ port: 4712, host: '0.0.0.0' });
@@ -190,18 +217,26 @@ function createWindow() {
     height: 1080,
     fullscreen: true,
     kiosk: true,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: !app.isPackaged,
+      backgroundThrottling: false,
     },
     // Touchscreen optimizations
     alwaysOnTop: true,
     skipTaskbar: true,
     autoHideMenuBar: true,
+    backgroundColor: '#050914',
   });
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   win.loadFile(indexPath);
-  
+
+  win.once('ready-to-show', () => {
+    win.show();
+  });
+
   // Prevent exit on escape key
   win.on('before-quit', (event) => {
     event.preventDefault();
