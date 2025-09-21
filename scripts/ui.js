@@ -8,55 +8,76 @@ const sideBtns = document.getElementById('sideBtns');
 const sideCarosel = document.getElementById('side-carosel');
 
 let inactivityTimeout;
-const INACTIVITY_DELAY = 10000; // 10 seconds
+const INACTIVITY_DELAY = 9000; // keep panels visible while actively using lights
+const CONTROL_ZONE_PADDING = 64;
+const CONTROL_ZONE_SELECTOR = '.switch-card, .wall-plate, #sideBtns, #side-carousel-container';
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function showSideBtns() {
+  if (!sideBtns) return;
   sideBtns.classList.add('side-btns-visible');
 
-  // Show the left-side carousel
   const container = document.getElementById('side-carousel-container');
-  container.classList.add('side-carosel-visible');
+  if (container) {
+    container.classList.add('side-carosel-visible');
+  }
 
   const rail = document.getElementById('side-carosel');
   if (!rail || rail.children.length === 0) {
-    window.initializeSideCarousel(window.BEDROOM_GROUP_ID || 457);
+    window.initializeSideCarousel?.(window.BEDROOM_GROUP_ID || 457);
   }
 
-  requestAnimationFrame(positionSideCarousel);
+  requestAnimationFrame(() => {
+    positionSideCarousel();
+  });
+
+  scheduleSideControlsHide();
 }
 
 function hideSideBtns() {
+  if (!sideBtns) return;
   sideBtns.classList.remove('side-btns-visible');
 
   const container = document.getElementById('side-carousel-container');
-  container.classList.remove('side-carosel-visible');
+  if (container) {
+    container.classList.remove('side-carosel-visible');
+  }
 
   window.hideSideCarosel?.();
+  clearTimeout(inactivityTimeout);
 }
 
 function positionSideCarousel() {
   const container = document.getElementById('side-carousel-container');
   const rail = document.getElementById('side-carosel');
   const plate = document.querySelector('.wall-plate');
-  const sideBtns = document.getElementById('sideBtns');
-  if (!container || !rail || !plate || !sideBtns) return;
+  if (!container || !rail || !plate) return;
 
   const plateBox = plate.getBoundingClientRect();
-  const btnsBox = sideBtns.getBoundingClientRect();
+  const card = document.querySelector('.switch-card');
+  const cardBox = card ? card.getBoundingClientRect() : plateBox;
 
-  const rightGap = Math.max(0, btnsBox.left - plateBox.right);
-  const desiredWidth = Math.max(280, Math.min(420, btnsBox.width));
-
-  const targetRightEdge = plateBox.left - rightGap;
-  let leftPx = targetRightEdge - desiredWidth;
+  const sliderWidth = Math.round(
+    clamp(cardBox.width * 0.26, 68, 132)
+  );
+  const gutter = Math.round(clamp(cardBox.width * 0.06, 12, 18));
+  const rightEdge = plateBox.left - gutter;
+  let leftPx = rightEdge - sliderWidth;
   if (leftPx < 12) leftPx = 12;
 
+  const centerY = plateBox.top + plateBox.height / 2;
   container.style.left = `${leftPx}px`;
-  container.style.width = `${desiredWidth}px`;
+  container.style.width = `${sliderWidth}px`;
+  container.style.top = `${centerY}px`;
+
+  const targetHeight = Math.min(cardBox.height * 0.92, window.innerHeight * 0.68);
+  container.style.height = `${targetHeight}px`;
 
   rail.style.width = '100%';
-  rail.style.height = `${Math.min(plateBox.height, 0.5 * window.innerHeight)}px`;
-  rail.style.position = 'relative';
+  rail.style.height = '100%';
 
   const sideNav = document.getElementById('side-nav');
   if (sideNav) {
@@ -68,35 +89,86 @@ function positionSideCarousel() {
 window.addEventListener('resize', positionSideCarousel);
 window.addEventListener('orientationchange', positionSideCarousel);
 
-function resetInactivityTimer() {
-  showSideBtns();
+function scheduleSideControlsHide() {
   clearTimeout(inactivityTimeout);
-  inactivityTimeout = setTimeout(hideSideBtns, INACTIVITY_DELAY);
+  inactivityTimeout = window.setTimeout(() => {
+    hideSideBtns();
+  }, INACTIVITY_DELAY);
 }
 
-// List of events that count as activity
-const activityEvents = ['mousemove', 'mousedown', 'touchstart', 'keydown'];
-
-function startInactivityListeners() {
-  activityEvents.forEach(event => {
-    window.addEventListener(event, resetInactivityTimer, { passive: true });
-  });
-  resetInactivityTimer();
+function eventPointFrom(evt) {
+  if (!evt) return null;
+  if (evt.touches && evt.touches.length) {
+    const touch = evt.touches[0];
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  if (typeof evt.clientX === 'number' && typeof evt.clientY === 'number') {
+    return { x: evt.clientX, y: evt.clientY };
+  }
+  return null;
 }
 
-// Wait for first user interaction to show side buttons and start timer logic
-function onFirstActivity() {
+function isWithinRect(rect, point, padding = 0) {
+  if (!rect || !point) return false;
+  const { x, y } = point;
+  return (
+    x >= rect.left - padding &&
+    x <= rect.right + padding &&
+    y >= rect.top - padding &&
+    y <= rect.bottom + padding
+  );
+}
+
+function isControlInteraction(evt) {
+  if (!evt) return false;
+  const target = evt.target;
+  if (target && target.closest?.(CONTROL_ZONE_SELECTOR)) {
+    return true;
+  }
+  const point = eventPointFrom(evt);
+  if (!point) return false;
+  const plate = document.querySelector('.switch-card');
+  if (!plate) return false;
+  const rect = plate.getBoundingClientRect();
+  return isWithinRect(rect, point, CONTROL_ZONE_PADDING);
+}
+
+function handleControlActivity(evt) {
+  if (!isControlInteraction(evt)) {
+    return;
+  }
+
+  const visible = sideBtns?.classList.contains('side-btns-visible');
+  const engaging =
+    evt.type === 'pointerdown' ||
+    evt.type === 'touchstart' ||
+    (evt.type === 'pointermove' && evt.buttons > 0) ||
+    (evt.type === 'touchmove' && evt.touches?.length) ||
+    evt.type === 'focusin';
+
+  if (!visible && !engaging) {
+    return;
+  }
+
   showSideBtns();
-  startInactivityListeners();
-  activityEvents.forEach(event => {
-    window.removeEventListener(event, onFirstActivity, true);
-  });
 }
 
 // Initialize side button functionality
 document.addEventListener('DOMContentLoaded', () => {
-  activityEvents.forEach(event => {
-    window.addEventListener(event, onFirstActivity, true);
+  hideSideBtns();
+  requestAnimationFrame(positionSideCarousel);
+
+  const revealEvents = ['pointerdown', 'touchstart', 'pointermove', 'touchmove', 'pointerup'];
+  revealEvents.forEach(event => {
+    window.addEventListener(event, handleControlActivity, { passive: true, capture: true });
+  });
+
+  window.addEventListener('focusin', handleControlActivity, true);
+  window.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearTimeout(inactivityTimeout);
+      hideSideBtns();
+    }
   });
 
   // Emoji fallback: map displayed emoji to local SVGs for Electron
