@@ -280,12 +280,12 @@ function connectWebSocket() {
 
       // Handle Reolink camera notifications - ALWAYS interrupt any modal except camera modal
       if (raw && raw.toLowerCase().includes('reolink')) {
-        console.log('Reolink message received, checking modal state...');
-        if (window.activeModal === 'camera') return;
-        if (window.activeModal && window.activeModal !== 'camera') {
-          if (typeof window.closeActiveModal === 'function') window.closeActiveModal();
+        console.log('Reolink message received, handling camera modal trigger.');
+        if (typeof window.handleCameraModalTrigger === 'function') {
+          window.handleCameraModalTrigger();
+        } else if (typeof window.showCameraModal === 'function') {
+          window.showCameraModal();
         }
-        if (typeof window.showCameraModal === 'function') window.showCameraModal();
         return;
       }
 

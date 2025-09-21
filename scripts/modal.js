@@ -7,6 +7,13 @@ let modalTriggerRect = null;
 
 // Global Modal Management Variables
 let activeModal = null;
+window.activeModal = null;
+
+function setActiveModal(value) {
+  activeModal = value;
+  window.activeModal = value;
+}
+window.setActiveModal = setActiveModal;
 let modalTimeout = null;
 let activityTimeout = null;
 let isWebSocketListening = true;
@@ -102,7 +109,7 @@ function showModalContent(html, showBack = false, triggerSelector = null) {
   
   document.getElementById('backModal').style.display = showBack ? 'block' : 'none';
   showModalBg(triggerSelector);
-  activeModal = 'main';
+  setActiveModal('main');
   startModalTimeout();
   startActivityMonitoring();
 }
@@ -111,10 +118,10 @@ function closeModal() {
   clearModalTimeout();
   stopActivityMonitoring();
   historyStack.length = 0;
+  const wasCamera = activeModal === 'camera';
   hideModalBg();
-  activeModal = null;
-  // Re-enable websocket listening when closing non-camera modals
-  if (activeModal !== 'camera') {
+  setActiveModal(null);
+  if (!wasCamera && typeof enableWebSocketListening === 'function') {
     enableWebSocketListening();
   }
 }
@@ -201,8 +208,9 @@ function closeActiveModal() {
     hideCameraModal();
   } else if (activeModal === 'main') {
     closeModal();
+  } else {
+    setActiveModal(null);
   }
-  activeModal = null;
   clearModalTimeout();
   stopActivityMonitoring();
 }
@@ -353,7 +361,7 @@ function openModal({ html, showBack=false, replace=true, timeoutMs=30000, type='
   document.getElementById('backModal').classList.toggle('is-hidden', !showBack && modalStack.length === 0);
   document.getElementById('modalBg').classList.add('visible');
   activeModalType = type;
-  activeModal = 'main';
+  setActiveModal('main');
   startModalTimeout();
   startActivityMonitoring();
 }

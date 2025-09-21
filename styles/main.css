@@ -4,23 +4,48 @@
 
 /* CSS Custom Properties for common values */
 :root {
-  --common-gradient: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.25)), #232526;
-  --common-gradient-dark: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(0,0,0,0.35)), #1a1a1a;
-  
+  --common-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.25)), #232526;
+  --common-gradient-dark: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.35)), #1a1a1a;
+
+  --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-text-primary: rgba(255, 229, 176, 0.95);
+  --color-overlay: rgba(9, 10, 21, 0.78);
+  --color-surface: rgba(26, 28, 40, 0.9);
+  --color-surface-alt: rgba(34, 36, 54, 0.92);
+
+  --transition-fast: 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --transition-medium: 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --transition-slow: 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.35);
+  --shadow-strong: 0 22px 55px rgba(0, 0, 0, 0.45);
+
+  --touch-target: 76px;
+  --bubble-outline: rgba(255, 255, 255, 0.12);
+  --camera-size: clamp(320px, 65vw, 560px);
+
   /* Carousel slider variables */
-  --b: 60; --s: 70; --h: 30; --k: 3500;
-  --bg: #7a7a7a; --pill: #4b4b4b; --warm: #ffb163; --cool: #bcd6ff; --cream: #fff0cf; --text: #fff;
+  --b: 60;
+  --s: 70;
+  --h: 30;
+  --k: 3500;
+  --bg: #7a7a7a;
+  --pill: #4b4b4b;
+  --warm: #ffb163;
+  --cool: #bcd6ff;
+  --cream: #fff0cf;
+  --text: #fff;
 }
 
 /* Base body styles */
 body {
   margin: 0;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: system-ui, "Noto Color Emoji", 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-display);
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -30,8 +55,13 @@ body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   position: relative;
-  background: linear-gradient(135deg, rgb(10, 10, 30), rgb(35, 35, 60));
-  color: rgba(255, 229, 176, 1);
+  background: radial-gradient(circle at 15% 20%, rgba(58, 49, 96, 0.45), transparent 55%),
+              radial-gradient(circle at 85% 25%, rgba(255, 179, 84, 0.22), transparent 60%),
+              linear-gradient(135deg, #090b16 0%, #1e213b 55%, #1f274a 100%);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  font-smooth: always;
+  overscroll-behavior: contain;
 }
   
 /* ========================================
@@ -40,34 +70,43 @@ body {
 
 /* Shared blob styling */
 .blob {
-    position: absolute;
-    width: 55vmax;
-    height: 55vmax;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.6;
-    animation: drift 60s infinite ease-in-out alternate;
-    mix-blend-mode: screen;
-  }
-  
+  position: absolute;
+  width: clamp(40vmax, 52vmax, 60vmax);
+  height: clamp(40vmax, 52vmax, 60vmax);
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  animation: drift var(--blob-duration, 60s) ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
   /* Colors pulled from your bedroom */
   .blob2 {
     top: 20%;
     left: 15%;
-    background: radial-gradient(circle, hsl(46, 65%, 52%) 0%, transparent 70%); /* brass/gold lamps */
-    animation-duration: 45s;
+    background: radial-gradient(circle, hsl(46, 65%, 52%) 0%, transparent 68%);
+    --blob-duration: 48s;
+  }
+
+  .blob1 {
+    top: -8%;
+    left: -12%;
+    background: radial-gradient(circle, rgba(90, 140, 255, 0.38) 0%, transparent 70%);
+    --blob-duration: 56s;
   }
   .blob3 {
     top: 50%;
     left: 70%;
-    background: radial-gradient(circle, rgb(30, 20, 80) 0%, transparent 70%); /* deep navy wall */
-    animation-duration: 67s;
+    background: radial-gradient(circle, rgba(30, 20, 80, 0.9) 0%, transparent 70%);
+    --blob-duration: 62s;
   }
   .blob4 {
     top: 65%;
     left: 35%;
-    background: radial-gradient(circle, rgb(241, 169, 26) 0%, transparent 70%); /* warm LED glow */
-    animation-duration: 53s;
+    background: radial-gradient(circle, rgba(241, 169, 26, 0.85) 0%, transparent 72%);
+    --blob-duration: 54s;
   }
   
   /* Organic drifting movement */
@@ -245,18 +284,12 @@ body {
   margin-left: 24px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 1s;
+  transition: opacity var(--transition-medium) ease;
 }
 
 .side-btns-visible {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-left: 24px;
-  opacity: 1 !important;
+  opacity: 1;
   pointer-events: auto;
-  transition: opacity 0.4s;
-  transition-delay: 0.3s;
 }
 .rollershadeSideBtn {
   background-image: url('../assets/images/roller-shade.png');
@@ -266,37 +299,41 @@ body {
 }
 .side-btns-visible .side-btn {
   opacity: 1;
-  transform: translateX(0);
+  transform: none;
 }
 
 /* Improve side button aesthetics */
 .side-btn {
-  background: rgba(0,0,0,0.15);
-  background-size: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  background-size: 48%;
   background-position: center;
   background-repeat: no-repeat;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 50%;
-  width: 82px;
-  height: 82px;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #222;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-  font-size: 1.5em;
-  transition: box-shadow 180ms ease, outline-color 180ms ease, filter 160ms ease, transform 120ms ease;
-  will-change: box-shadow, filter, transform;
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-soft);
+  font-size: 1.75rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+  will-change: transform, box-shadow, filter;
 }
 
 .dark-theme .side-btn {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
+  background: rgba(36, 38, 54, 0.9);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: #f5f6fa;
 }
 
 .side-btn:hover {
-  transform: scale(1.1) translate(-50%,-50%);
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: var(--shadow-strong);
+  filter: brightness(1.05);
 }
 
 /* ========================================
@@ -306,35 +343,36 @@ body {
 /* Modal background */
 .modal-bg {
   position: fixed;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: var(--color-overlay);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  pointer-events: none;
+  transition: opacity var(--transition-medium) ease;
 }
 
 .modal-bg.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .modal {
-  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  background: linear-gradient(145deg, rgba(46, 49, 66, 0.92), rgba(22, 23, 33, 0.94));
   border-radius: 50%;
   padding: 40px;
-  width: 480px;
-  height: 480px;
+  width: clamp(360px, 52vw, 560px);
+  height: clamp(360px, 52vw, 560px);
   max-width: 90vw;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  transform: scale(0.7);
+  box-shadow: var(--shadow-strong), 0 0 0 1px var(--bubble-outline);
+  transform: scale(0.82);
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: transform var(--transition-medium), opacity var(--transition-medium);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -343,27 +381,28 @@ body {
 }
 
 .modal.bubble {
-  width: 560px;
-  height: 560px;
+  width: clamp(420px, 58vw, 600px);
+  height: clamp(420px, 58vw, 600px);
   text-align: center;
+  padding: 48px;
 }
 
 /* Position back and close buttons above modal content */
 .back-modal, .close-modal {
   position: absolute;
   top: 8px;
-  background: rgba(255,255,255,0.1);
-  border: none;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5em;
-  color: #fff;
+  font-size: 1.4em;
+  color: rgba(255,255,255,0.85);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
   z-index: 1001;
 }
 
@@ -373,15 +412,16 @@ body {
 
 .close-modal {
   right: 8px;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5em;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4em;
   line-height: 1;
 }
 
 .back-modal:hover, .back-modal:active, .close-modal:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1) translate(-50%,-50%);
+  background: rgba(255, 255, 255, 0.22);
+  color: #12131d;
+  transform: scale(1.08);
 }
 
 
@@ -522,39 +562,42 @@ body {
 }
 
 #cameraModalBg {
-  background: none;
-  display: none;
+  position: fixed;
+  inset: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  background: rgba(5, 7, 15, 0.82);
+  z-index: 1000;
   opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-medium) ease, visibility 0s linear var(--transition-medium);
 }
 
 #cameraModalBg.visible {
-  display: flex;
-  pointer-events: auto;
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity var(--transition-medium) ease;
 }
 
 #cameraModal {
-  width: 800px;
-  height: 800px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  width: var(--camera-size);
+  height: var(--camera-size);
+  max-width: 92vw;
+  max-height: 92vh;
+  background: linear-gradient(145deg, rgba(44, 47, 64, 0.94), rgba(18, 19, 29, 0.95));
   border-radius: 50%;
-  box-shadow: 
-    0 20px 60px rgba(0,0,0,0.8),
-    0 0 0 1px rgba(255,255,255,0.05),
-    inset 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow: var(--shadow-strong), 0 0 0 1px var(--bubble-outline);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  transform: scale(0.7);
+  overflow: hidden;
+  transform: scale(0.82);
   opacity: 0;
-  transition: transform 0.35s cubic-bezier(.4,2,.6,1), opacity 0.3s;
-  border: none;
+  transition: transform var(--transition-medium), opacity var(--transition-medium);
 }
 
 #cameraModalBg.visible #cameraModal {
@@ -562,30 +605,51 @@ body {
   opacity: 1;
 }
 
+#cameraModal.is-hiding {
+  transform: scale(0.86);
+  opacity: 0;
+}
+
+#cameraModal video,
+#cameraModal iframe,
+#cameraModal canvas,
 #reolink-snap {
-  width: 490px;
-  height: 490px;
+  width: 88%;
+  height: 88%;
   border-radius: 50%;
-  background: #111;
+  background: #050505;
   border: none;
+  object-fit: cover;
   display: block;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 #closeCameraModal {
   position: absolute;
-  top: 10px;
+  top: 18px;
   right: 18px;
-  font-size: 1.8em;
-  color: #fff;
-  background: none;
-  border: none;
+  width: 44px;
+  height: 44px;
+  font-size: 1.6rem;
+  color: #f5f6fa;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
   cursor: pointer;
-  transition: color 0.2s;
+  display: grid;
+  place-items: center;
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
   z-index: 2;
 }
 
 #closeCameraModal:hover {
- transform: scale(1.1) translate(-50%,-50%);
+  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.18);
+  color: #12131d;
+}
+
+#closeCameraModal:active {
+  transform: scale(0.96);
 }
 
 .btn {
@@ -620,6 +684,15 @@ body {
 
 .btn-primary { background: #4a90e2; }
 .btn-primary:hover { background: #357abd; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 .btn-success { background: #4CAF50; }
 .btn-success:hover { background: #45a049; }
 .btn-warning { background: #ff9800; }
@@ -798,19 +871,15 @@ body {
 }
 
 .dark-theme .side-btn {
-  background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
-  color: #ffffff;
-  box-shadow: 
-    4px 4px 8px rgba(0, 0, 0, 0.4),
-    -4px -4px 8px rgba(255, 255, 255, 0.05);
+  background: rgba(36, 38, 54, 0.95);
+  color: #f5f6fa;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .dark-theme .side-btn:hover {
-  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
-  transform: translateY(-2px);
-  box-shadow: 
-    6px 6px 12px rgba(0, 0, 0, 0.5),
-    -6px -6px 12px rgba(255, 255, 255, 0.08);
+  background: rgba(66, 70, 96, 0.95);
+  box-shadow: var(--shadow-strong);
 }
 
 .dark-theme .modal {
@@ -831,16 +900,15 @@ body {
 
 .dark-theme .close-modal,
 .dark-theme .back-modal {
-  background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
-  color: #ffffff;
-  box-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 0.3),
-    -2px -2px 4px rgba(255, 255, 255, 0.05);
+  background: rgba(40, 42, 60, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f5f6fa;
 }
 
 .dark-theme .close-modal:hover,
 .dark-theme .back-modal:hover {
-  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  background: rgba(82, 86, 112, 0.92);
+  color: #0b0d18;
 }
 
 .dark-theme input[type="range"] {
@@ -1437,11 +1505,10 @@ button:focus-visible, input[type="range"]:focus-visible {
 
 /* Optional hover/tap affordance (subtle) */
 .device-tile:hover,
-[data-device-id]:hover,
-.side-btn:hover{ filter: brightness(1.04); }
+[data-device-id]:hover { filter: brightness(1.04); }
 .device-tile:active,
 [data-device-id]:active,
-.side-btn:active{ transform: translateY(1px); }
+.side-btn:active{ transform: translateY(-1px) scale(0.96); }
 
 /* Top-half global buttons adopt scene-like glossy chips */
 .global-ring-top .global-btn {
@@ -2097,32 +2164,9 @@ button:active {
 }
 
 
-/* Modal close/back buttons */
-.close-modal:hover,
-.back-modal:hover {
-  transform: scale(1.1) translate(-50%,-50%);
-}
-
-.close-modal:active,
-.back-modal:active {
-  transform: translateY(0);
-}
-
-
-/* Specific button overrides (handled by universal button states above) */
-
 /* Ensure all buttons have smooth transitions */
 button {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-/* Side button specific overrides */
-.side-btn:hover {
-  transform: scale(1.1) !important;
-}
-
-.side-btn:active {
-  transform: scale(0.95) !important;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
 /* ==== END UNIVERSAL BUTTON STATES ==== */

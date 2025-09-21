@@ -1,141 +1,194 @@
-     // --- Camera Modal Logic ---
-let cameraModalTimeout = null;
+// --- Camera Modal Logic ---
+const CAMERA_TRANSITION_MS = 340;
+
 let videoStream = null;
 let currentVideoElement = null;
+let cameraHideTimer = null;
+let cameraShellBound = false;
+
+function syncActiveModal(state) {
+  if (typeof setActiveModal === 'function') {
+    setActiveModal(state);
+  } else {
+    window.activeModal = state;
+  }
+}
+
+function resetCameraModalTimeout() {
+  if (typeof recordActivity === 'function') {
+    recordActivity();
+    return;
+  }
+
+  if (typeof clearModalTimeout === 'function') clearModalTimeout();
+  if (typeof startModalTimeout === 'function') startModalTimeout();
+}
+
+function handleCameraInteraction() {
+  resetCameraModalTimeout();
+}
+
+function bindShellInteractions(modal) {
+  if (!modal || cameraShellBound) return;
+  modal.addEventListener('pointerdown', handleCameraInteraction);
+  modal.addEventListener('click', handleCameraInteraction);
+  cameraShellBound = true;
+}
+
+function attachMediaListeners(element) {
+  if (!element) return;
+  element.addEventListener('pointerdown', handleCameraInteraction);
+  element.addEventListener('click', handleCameraInteraction);
+  element.addEventListener('touchstart', handleCameraInteraction, { passive: true });
+}
+
+function cleanupExistingMedia(modal) {
+  if (currentVideoElement) {
+    currentVideoElement.remove();
+    currentVideoElement = null;
+  }
+
+  const iframe = modal?.querySelector('iframe');
+  if (iframe) {
+    iframe.src = '';
+    iframe.remove();
+  }
+}
 
 async function showCameraModal() {
-  console.log('Opening camera modal...');
   const startTime = performance.now();
   const bg = document.getElementById('cameraModalBg');
   const modal = document.getElementById('cameraModal');
-  
+
   if (!bg || !modal) {
     console.error('Camera modal elements not found!');
     return;
   }
-  
-  // Show modal with CSS transitions
+
+  if (window.activeModal === 'camera') {
+    console.log('Camera modal already open, extending timeout.');
+    resetCameraModalTimeout();
+    return;
+  }
+
+  clearTimeout(cameraHideTimer);
+  modal.classList.remove('is-hiding');
   bg.classList.add('visible');
-  console.log('Camera modal background displayed');
-  activeModal = 'camera';
-  
-  // Start the unified modal timeout system
-  startModalTimeout();
-  startActivityMonitoring();
-  
-  // Disable websocket listening during camera modal timeout
-  // (but allow Reolink messages to still interrupt)
-  disableWebSocketListening();
-  
-  // If a previous VideoStream instance exists, stop and clean it up before creating a new one.
-  // This prevents orphaned WebRTC sessions from accumulating on the server.
+  syncActiveModal('camera');
+
+  if (typeof startModalTimeout === 'function') startModalTimeout();
+  if (typeof startActivityMonitoring === 'function') startActivityMonitoring();
+  if (typeof disableWebSocketListening === 'function') disableWebSocketListening();
+
+  bindShellInteractions(modal);
+  cleanupExistingMedia(modal);
+
   if (videoStream) {
     try {
       videoStream.stop();
-    } catch (e) {
-      console.warn('Error stopping previous video stream:', e);
+    } catch (error) {
+      console.warn('Error stopping previous video stream:', error);
     }
     videoStream = null;
   }
-  
+
   try {
-    // Always create a fresh VideoStream instance after cleaning up any previous one.
     videoStream = new VideoStream();
-    
-    // Remove existing iframe if present
-    const existingIframe = modal.querySelector('iframe');
-    if (existingIframe) {
-      existingIframe.remove();
-    }
-    
-    // Remove existing video if present
-    if (currentVideoElement) {
-      currentVideoElement.remove();
-    }
-    
-    // Try WebRTC first, fallback to HLS, then MJPEG
+
     try {
       currentVideoElement = await videoStream.initializeStream('reolink');
-      console.log('WebRTC stream initialized');
       logStreamPerformance('webrtc', startTime);
     } catch (webrtcError) {
       console.warn('WebRTC failed, trying HLS:', webrtcError);
       try {
         currentVideoElement = await videoStream.createHLSStream('reolink');
-        console.log('HLS stream initialized');
         logStreamPerformance('hls', startTime);
       } catch (hlsError) {
         console.warn('HLS failed, using MJPEG fallback:', hlsError);
         currentVideoElement = videoStream.createMJPEGStream('reolink');
-        console.log('MJPEG stream initialized');
         logStreamPerformance('mjpeg', startTime);
       }
     }
-    
-    // Add video element to modal
+
     modal.insertBefore(currentVideoElement, modal.querySelector('#closeCameraModal'));
-    
+    attachMediaListeners(currentVideoElement);
   } catch (error) {
     console.error('Failed to initialize camera stream:', error);
     logStreamPerformance('iframe_fallback', startTime);
-    // Fallback to iframe
+
     const iframe = document.createElement('iframe');
     iframe.id = 'reolink-snap';
     iframe.src = 'http://192.168.4.145:1984/stream.html?src=reolink';
     modal.insertBefore(iframe, modal.querySelector('#closeCameraModal'));
+    currentVideoElement = iframe;
+    attachMediaListeners(currentVideoElement);
   }
-  
-  // Note: Auto-hide is now handled by the unified modal timeout system
-  // No need for separate camera timeout
+
+  resetCameraModalTimeout();
 }
 
 function hideCameraModal() {
   const bg = document.getElementById('cameraModalBg');
   const modal = document.getElementById('cameraModal');
-  
+
+  if (!bg || !modal) return;
+
   bg.classList.remove('visible');
-  clearTimeout(cameraModalTimeout);
-  cameraModalTimeout = null;
-  activeModal = null;
-  
-  // Clear the unified modal timeout system
-  clearModalTimeout();
-  stopActivityMonitoring();
-  
-  // Re-enable websocket listening when camera modal closes
-  enableWebSocketListening();
-  
-  // Stop video stream and reset the instance to prevent stale connections
+  modal.classList.add('is-hiding');
+  syncActiveModal(null);
+
+  if (typeof clearModalTimeout === 'function') clearModalTimeout();
+  if (typeof stopActivityMonitoring === 'function') stopActivityMonitoring();
+  if (typeof enableWebSocketListening === 'function') enableWebSocketListening();
+
   if (videoStream) {
     try {
       videoStream.stop();
-    } catch (e) {
-      console.warn('Error stopping video stream:', e);
+    } catch (error) {
+      console.warn('Error stopping video stream:', error);
     }
     videoStream = null;
   }
-  
-  // Remove video element
-  if (currentVideoElement) {
-    currentVideoElement.remove();
-    currentVideoElement = null;
-  }
-  
-  // Clear any iframe
-  const iframe = modal.querySelector('iframe');
-  if (iframe) {
-    iframe.src = '';
-    iframe.remove();
-  }
-  
+
+  cleanupExistingMedia(modal);
+
+  clearTimeout(cameraHideTimer);
+  cameraHideTimer = setTimeout(() => {
+    modal.classList.remove('is-hiding');
+  }, CAMERA_TRANSITION_MS);
+
   console.log('Camera stream stopped and cleaned up');
 }
 
+function handleCameraModalTrigger() {
+  if (window.activeModal === 'camera') {
+    resetCameraModalTimeout();
+    return;
+  }
+
+  if (window.activeModal && window.activeModal !== 'camera' && typeof window.closeActiveModal === 'function') {
+    window.closeActiveModal();
+  }
+
+  showCameraModal();
+}
+
 // Initialize camera modal event listeners
-document.addEventListener('DOMContentLoaded', function() {
-  // Close button and background click
-  document.getElementById('closeCameraModal').onclick = hideCameraModal;
-  document.getElementById('cameraModalBg').onclick = function(e) {
-    if (e.target === this) hideCameraModal();
-  };
-}); 
+document.addEventListener('DOMContentLoaded', () => {
+  const closeButton = document.getElementById('closeCameraModal');
+  const bg = document.getElementById('cameraModalBg');
+
+  if (closeButton) closeButton.addEventListener('click', hideCameraModal);
+  if (bg) {
+    bg.addEventListener('click', (event) => {
+      if (event.target === bg) {
+        hideCameraModal();
+      }
+    });
+  }
+});
+
+window.showCameraModal = showCameraModal;
+window.hideCameraModal = hideCameraModal;
+window.handleCameraModalTrigger = handleCameraModalTrigger;
+window.resetCameraModalTimeout = resetCameraModalTimeout;
