@@ -560,11 +560,19 @@ function setupSideGestureHandlers(deviceId) {
     let startY = 0, startX = 0, startValue = +input.value;
     let moved = false, dragging = false;
     const ORIENT_EPS = 8;
+    const sliderWrap = layer.closest('.slider-wrap');
+
+    const clearDragState = () => {
+      moved = false;
+      dragging = false;
+      sliderWrap?.classList.remove('is-dragging');
+    };
 
     layer.addEventListener('pointerdown', (e) => {
       layer.setPointerCapture(e.pointerId);
       startY = e.clientY; startX = e.clientX; startValue = +input.value;
       moved = false; dragging = false;
+      sliderWrap?.classList.add('is-dragging');
     });
 
     layer.addEventListener('pointermove', (e) => {
@@ -576,6 +584,7 @@ function setupSideGestureHandlers(deviceId) {
       if (!dragging && ady > ORIENT_EPS) dragging = true;
       if (dragging) {
         moved = true;
+        sliderWrap?.classList.add('is-dragging');
         const h = rect().height;
         const delta = (dy / h) * valueRange;
         onChange(startValue + delta);
@@ -592,11 +601,11 @@ function setupSideGestureHandlers(deviceId) {
       }
       if (window.sendSideImmediateCommand) window.sendSideImmediateCommand(input.id, input.value);
       layer.releasePointerCapture(e.pointerId);
-      moved = false; dragging = false;
+      clearDragState();
     });
 
-    layer.addEventListener('pointercancel', () => { moved = false; dragging = false; });
-    layer.addEventListener('lostpointercapture', () => { moved = false; dragging = false; });
+    layer.addEventListener('pointercancel', clearDragState);
+    layer.addEventListener('lostpointercapture', clearDragState);
   }
 
   const $b = document.getElementById('side-input-brightness');
