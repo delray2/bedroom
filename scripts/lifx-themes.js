@@ -5,10 +5,10 @@
 
 class LIFXThemes {
     constructor() {
-        this.haUrl = 'http://192.168.4.145:8123';
-        this.accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4';
-        this.beamEntity = 'light.beam';
-        this.themeEntity = 'select.beam_theme';
+        this.haUrl = window.CONFIG.HOME_ASSISTANT.BASE_URL;
+        this.accessToken = window.CONFIG.HOME_ASSISTANT.ACCESS_TOKEN;
+        this.beamEntity = window.CONFIG.HOME_ASSISTANT.ENTITIES.LIFX_BEAM;
+        this.themeEntity = window.CONFIG.HOME_ASSISTANT.ENTITIES.LIFX_BEAM_THEME;
     }
 
     /**

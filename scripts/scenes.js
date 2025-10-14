@@ -123,16 +123,16 @@ window.lifxScenes = [
   }
 ];
 
-// WLED Device IPs - Direct HTTP API control
+// WLED Device IPs - Direct HTTP API control (from CONFIG)
 const WLED_DEVICES = {
-  'bedroom1': '192.168.4.137',   // Bedroom WLED device 1
-  'bedroom2': '192.168.4.52'     // Bedroom WLED device 2
+  'bedroom1': window.CONFIG?.WLED?.BEDROOM_1 || '192.168.4.137',
+  'bedroom2': window.CONFIG?.WLED?.BEDROOM_2 || '192.168.4.52'
 };
 
-// Safe access to Hubitat Maker API globals
-const MAKER = typeof window !== 'undefined' ? (window.MAKER_API_BASE || '') : '';
-const TOKEN = typeof window !== 'undefined' ? (window.ACCESS_TOKEN || '') : '';
-const LRID = typeof window !== 'undefined' ? (window.BEDROOM_LIGHTS_ID || '') : '';
+// Safe access to Hubitat Maker API globals (from CONFIG)
+const MAKER = window.CONFIG?.HUBITAT?.BASE_URL || '';
+const TOKEN = window.CONFIG?.HUBITAT?.ACCESS_TOKEN || '';
+const LRID = window.CONFIG?.DEVICES?.BEDROOM_GROUP || '';
 
 function showScenesModal() {
   const sceneCount = lifxScenes.length;
@@ -315,8 +315,8 @@ window.showWledPalettesModal = function() {
 window.applyWledPalette = function(id, name) {
   // Apply to both bedroom WLED devices
   Promise.all([
-    fetch(`http://${WLED_DEVICES.bedroom1}/win&FP=${id}`),
-    fetch(`http://${WLED_DEVICES.bedroom2}/win&FP=${id}`)
+    fetch(window.CONFIG.WLED.commandUrl(WLED_DEVICES.bedroom1, `FP=${id}`)),
+    fetch(window.CONFIG.WLED.commandUrl(WLED_DEVICES.bedroom2, `FP=${id}`))
   ])
     .then(() => {
       const feedback = document.getElementById('wledFeedback');
@@ -362,8 +362,8 @@ window.showWledFxModal = function() {
 window.applyWledEffect = function(id, name) {
   // Apply to both bedroom WLED devices
   Promise.all([
-    fetch(`http://${WLED_DEVICES.bedroom1}/win&FX=${id}`),
-    fetch(`http://${WLED_DEVICES.bedroom2}/win&FX=${id}`)
+    fetch(window.CONFIG.WLED.commandUrl(WLED_DEVICES.bedroom1, `FX=${id}`)),
+    fetch(window.CONFIG.WLED.commandUrl(WLED_DEVICES.bedroom2, `FX=${id}`))
   ])
     .then(() => {
       const feedback = document.getElementById('wledFeedback');
@@ -410,15 +410,8 @@ window.showGlobalControlsModal = showGlobalControlsModal;
 
 // Send command to BedroomLifxGOG device using Hubitat API
 function sendBedroomLightsCommand(command, value) {
-  const BEDROOM_LIGHTS_ID = window.BEDROOM_GROUP_ID; // BedroomLifxGOG device ID
-  const API_BASE = 'http://192.168.4.44/apps/api/37'; // From localUrls.md
-  const ACCESS_TOKEN = 'b9846a66-8bf8-457a-8353-fd16d511a0af'; // From localUrls.md
-  
-  let url = `${API_BASE}/devices/${BEDROOM_LIGHTS_ID}/${command}`;
-  if (value !== undefined) {
-    url += `/${value}`;
-  }
-  url += `?access_token=${ACCESS_TOKEN}`;
+  const BEDROOM_LIGHTS_ID = window.CONFIG.DEVICES.BEDROOM_GROUP;
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(BEDROOM_LIGHTS_ID, command, value);
   
   fetch(url)
     .then(res => res.text())

@@ -5,7 +5,6 @@ let currentVideoElement = null;
 
 async function showCameraModal() {
   console.log('Opening camera modal...');
-  const startTime = performance.now();
   const bg = document.getElementById('cameraModalBg');
   const modal = document.getElementById('cameraModal');
   
@@ -13,6 +12,17 @@ async function showCameraModal() {
     console.error('Camera modal elements not found!');
     return;
   }
+  
+  // If camera modal is already open, just reset the timeout (don't close/reopen)
+  if (activeModal === 'camera' && bg.classList.contains('visible')) {
+    console.log('Camera modal already open - resetting timeout (doorbell re-trigger)');
+    clearModalTimeout();
+    startModalTimeout();
+    startActivityMonitoring();
+    return; // Don't reinitialize the stream
+  }
+  
+  const startTime = performance.now();
   
   // Show modal with CSS transitions
   bg.classList.add('visible');
@@ -54,19 +64,20 @@ async function showCameraModal() {
     }
     
     // Try WebRTC first, fallback to HLS, then MJPEG
+    const cameraName = window.CONFIG.GO2RTC.CAMERA_NAME;
     try {
-      currentVideoElement = await videoStream.initializeStream('reolink');
+      currentVideoElement = await videoStream.initializeStream(cameraName);
       console.log('WebRTC stream initialized');
       logStreamPerformance('webrtc', startTime);
     } catch (webrtcError) {
       console.warn('WebRTC failed, trying HLS:', webrtcError);
       try {
-        currentVideoElement = await videoStream.createHLSStream('reolink');
+        currentVideoElement = await videoStream.createHLSStream(cameraName);
         console.log('HLS stream initialized');
         logStreamPerformance('hls', startTime);
       } catch (hlsError) {
         console.warn('HLS failed, using MJPEG fallback:', hlsError);
-        currentVideoElement = videoStream.createMJPEGStream('reolink');
+        currentVideoElement = videoStream.createMJPEGStream(cameraName);
         console.log('MJPEG stream initialized');
         logStreamPerformance('mjpeg', startTime);
       }
@@ -81,7 +92,7 @@ async function showCameraModal() {
     // Fallback to iframe
     const iframe = document.createElement('iframe');
     iframe.id = 'reolink-snap';
-    iframe.src = 'http://192.168.4.145:1984/stream.html?src=reolink';
+    iframe.src = `${window.CONFIG.GO2RTC.BASE_URL}/stream.html?src=${window.CONFIG.GO2RTC.CAMERA_NAME}`;
     modal.insertBefore(iframe, modal.querySelector('#closeCameraModal'));
   }
   

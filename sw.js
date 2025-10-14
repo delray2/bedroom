@@ -1,10 +1,24 @@
-const CACHE_NAME = 'hubitat-dashboard-v1';
+const CACHE_NAME = 'hubitat-dashboard-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/main.js',
-  '/video-rtc.js',
-  '/video-stream.js'
+  '/video-stream.js',
+  '/styles/main.css',
+  '/scripts/config.js',
+  '/statemanager/unified-state-manager.js',
+  '/scripts/main.js',
+  '/scripts/modal.js',
+  '/scripts/ui.js',
+  '/scripts/api.js',
+  '/scripts/ui-manager.js',
+  '/scripts/devices.js',
+  '/scripts/controls.js',
+  '/scripts/camera.js',
+  '/scripts/scenes.js',
+  '/scripts/lifx-themes.js',
+  '/scripts/paddle-switch.js',
+  '/scripts/slider-carousel.js'
 ];
 
 self.addEventListener('install', event => {

@@ -1,6 +1,15 @@
 // Comprehensive Modal Management System with Activity-Based Timeouts
-// DEBUG: Log modal open/close and fallback
-function debugLog(msg) { try { console.log('[MODAL DEBUG]', msg); } catch(e){} }
+// DEBUG: Log modal open/close and fallback (reduced verbosity)
+function debugLog(msg) { 
+  try { 
+    // Only log initialization events, not repetitive activity
+    if (msg.includes('Activity listeners set up') || 
+        msg.includes('Modal system initialized')) {
+      console.log('[MODAL DEBUG]', msg); 
+    }
+    // Skip repetitive "WebSocket listening enabled" and "Closing modal" messages
+  } catch(e){} 
+}
 
 // Modal animation from trigger button
 let modalTriggerRect = null;
@@ -11,7 +20,7 @@ let modalTimeout = null;
 let activityTimeout = null;
 let isWebSocketListening = true;
 let lastActivityTime = Date.now();
-const MODAL_TIMEOUT = 30000; // 30 seconds
+const MODAL_TIMEOUT = window.CONFIG?.TIMING?.MODAL_TIMEOUT || 30000; // 30 seconds
 const ACTIVITY_CHECK_INTERVAL = 1000; // Check for activity every second
 const historyStack = [];
 
@@ -108,6 +117,10 @@ function showModalContent(html, showBack = false, triggerSelector = null) {
 }
 
 function closeModal() {
+  // Clear the current open device ID when modal closes
+  window.currentOpenDeviceId = null;
+  console.log('Modal closed, cleared currentOpenDeviceId');
+  
   clearModalTimeout();
   stopActivityMonitoring();
   historyStack.length = 0;
@@ -300,12 +313,15 @@ document.getElementById('backModal').onclick = function() {
   const body = document.getElementById('modalBody');
   const prev = historyStack.pop();
   if (prev){
+    // Go back to previous modal content
     body.innerHTML = prev;
-    document.getElementById('backModal').style.display = historyStack.length ? 'block' : 'none';
+    // Update back button visibility based on history stack
+    document.getElementById('backModal').style.display = historyStack.length > 0 ? 'block' : 'none';
+    console.log('Navigated back to previous modal. History depth:', historyStack.length);
   } else {
-    if (window.uiManager) {
-      window.uiManager.showBubbleChartModal();
-    }
+    // No history - close the modal
+    closeModal();
+    console.log('No modal history - closing modal');
   }
 };
 

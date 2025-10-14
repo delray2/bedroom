@@ -6,6 +6,6 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-# Start the dashboard
-echo "Starting Hubitat Dashboard..."
+# Start the main dashboard (includes Spotify authentication)
+echo "Starting Hubitat Dashboard with integrated Spotify support..."
 npm start 

@@ -4,10 +4,11 @@ class VideoStream {
     this.peerConnection = null;
     this.videoElement = null;
     this.stream = null;
-    this.go2rtcUrl = 'http://192.168.4.145:1984'; // Your go2rtc server
+    this.go2rtcUrl = window.CONFIG?.GO2RTC?.BASE_URL || 'http://192.168.4.145:1984';
   }
 
-  async initializeStream(streamName = 'reolink') {
+  async initializeStream(streamName = null) {
+    streamName = streamName || window.CONFIG?.GO2RTC?.CAMERA_NAME || 'reolink';
     try {
       // Create video element if it doesn't exist
       if (!this.videoElement) {
@@ -92,7 +93,8 @@ class VideoStream {
   }
 
   // Alternative: Direct HLS stream
-  async createHLSStream(streamName = 'reolink') {
+  async createHLSStream(streamName = null) {
+    streamName = streamName || window.CONFIG?.GO2RTC?.CAMERA_NAME || 'reolink';
     if (Hls.isSupported()) {
       const video = document.createElement('video');
       video.autoplay = true;
@@ -125,7 +127,8 @@ class VideoStream {
   }
 
   // Alternative: Direct MJPEG stream
-  createMJPEGStream(streamName = 'reolink') {
+  createMJPEGStream(streamName = null) {
+    streamName = streamName || window.CONFIG?.GO2RTC?.CAMERA_NAME || 'reolink';
     const video = document.createElement('img');
     video.style.width = '100%';
     video.style.height = '100%';

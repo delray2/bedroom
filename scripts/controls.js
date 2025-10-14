@@ -1,6 +1,6 @@
 // --- TV Modal (Fire TV and Roku TV) ---
 function showTvModal() {
-  let html = `<div class="rollershade-controls">
+  let html = `<div class="rollershade-controls" style="width: 100%; height: 100%;">
       <button class="rollershade-btn tv-firetv" onclick='showFireTvModal()'>
         <span class="icon">🔥</span>
         <span class="label">Fire TV</span>
@@ -9,10 +9,9 @@ function showTvModal() {
         <span class="icon">📺</span>
         <span class="label">Roku TV</span>
       </button>
-    </div>
-    <div id='tvFeedback' class="toast"></div>`;
+    </div>`;
   
-  showModalContent(html, true, '.side-btn[title="TV"]');
+  showModalContent(html, false, '.side-btn[title="TV"]');
 }
 
 // Fire TV Modal
@@ -170,35 +169,157 @@ window.showFireTvModal = function() {
   showModalContent(html, true, '.side-btn[title="TV"]');
 }
 
-// Roku TV Modal
+// Roku TV Modal - Full remote control layout
 window.showRokuTvModal = function() {
-  const rokuTvId = '474'; // Bedroom TV device ID
-  let html = `<div class="modal-header">Roku TV Controls</div>
-    <div class="bubble-ring count-8">`;
-  
-  const rokuTvButtons = [
-    {label:'Power', cmd:'power', icon:'⏻', api:'off'},
-    {label:'On', cmd:'on', icon:'🔛', api:'on'},
-    {label:'Home', cmd:'home', icon:'🏠', api:'home'},
-    {label:'Back', cmd:'back', icon:'⬅️', api:'back'},
-    {label:'Up', cmd:'up', icon:'⬆️', api:'up'},
-    {label:'Down', cmd:'down', icon:'⬇️', api:'down'},
-    {label:'Left', cmd:'left', icon:'⬅️', api:'left'},
-    {label:'Right', cmd:'right', icon:'➡️', api:'right'},
-    {label:'Select', cmd:'select', icon:'✅', api:'select'},
-    {label:'Play', cmd:'play', icon:'▶️', api:'play'},
-    {label:'Pause', cmd:'pause', icon:'⏸️', api:'pause'},
-    {label:'Stop', cmd:'stop', icon:'⏹️', api:'stop'}
-  ];
-  
-  for (let i = 0; i < rokuTvButtons.length; i++) {
-    html += `<button class="bubble-btn control-button i-${i}" onclick='rokuTvSendCommand("${rokuTvButtons[i].api}")'>
-      <div class="icon">${rokuTvButtons[i].icon}</div>
-      <div class="label">${rokuTvButtons[i].label}</div>
-    </button>`;
-  }
-  
-  html += `</div>
+  const rokuTvId = window.CONFIG.DEVICES.BEDROOM_TV; // Device 473
+  let html = `<div class="fire-tv-remote">
+      <!-- Top Row: Power, Home, Back -->
+      <div class="remote-section top-row">
+        <button class="remote-btn btn-power" onclick='rokuTvSendCommand("off")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6"/>
+          </svg>
+          <div class="label">Power</div>
+        </button>
+        <button class="remote-btn btn-home" onclick='rokuTvSendCommand("home")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+          <div class="label">Home</div>
+        </button>
+        <button class="remote-btn btn-back" onclick='rokuTvSendCommand("back")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+          <div class="label">Back</div>
+        </button>
+      </div>
+      
+      <!-- D-Pad Cluster -->
+      <div class="remote-section d-pad">
+        <button class="remote-btn btn-up" onclick='rokuTvSendCommand("up")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M12 19V5"/>
+            <path d="M5 12l7-7 7 7"/>
+          </svg>
+        </button>
+        <button class="remote-btn btn-down" onclick='rokuTvSendCommand("down")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M12 5v14"/>
+            <path d="M19 12l-7 7-7-7"/>
+          </svg>
+        </button>
+        <button class="remote-btn btn-left" onclick='rokuTvSendCommand("left")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <button class="remote-btn btn-right" onclick='rokuTvSendCommand("right")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M5 12h14"/>
+            <path d="M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+        <button class="remote-btn btn-select" onclick='rokuTvSendCommand("select")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <div class="label">OK</div>
+        </button>
+      </div>
+      
+      <!-- Volume Controls -->
+      <div class="remote-section volume-controls">
+        <button class="remote-btn btn-mute" onclick='rokuTvSendCommand("mute")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+          <div class="label">Mute</div>
+        </button>
+        <button class="remote-btn btn-vol-down" onclick='rokuTvSendCommand("volumeDown")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+            <line x1="17" y1="12" x2="23" y2="12"/>
+          </svg>
+          <div class="label">Vol-</div>
+        </button>
+        <button class="remote-btn btn-vol-up" onclick='rokuTvSendCommand("volumeUp")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+            <line x1="17" y1="12" x2="23" y2="12"/>
+            <line x1="17" y1="9" x2="23" y2="9"/>
+          </svg>
+          <div class="label">Vol+</div>
+        </button>
+      </div>
+      
+      <!-- Media Controls -->
+      <div class="remote-section media-controls">
+        <button class="remote-btn btn-play" onclick='rokuTvSendCommand("play")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+          <div class="label">Play</div>
+        </button>
+        <button class="remote-btn btn-pause" onclick='rokuTvSendCommand("pause")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+          <div class="label">Pause</div>
+        </button>
+        <button class="remote-btn btn-stop" onclick='rokuTvSendCommand("stop")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12"/>
+          </svg>
+          <div class="label">Stop</div>
+        </button>
+      </div>
+      
+      <!-- HDMI Inputs -->
+      <div class="remote-section hdmi-inputs">
+        <button class="remote-btn btn-hdmi1" onclick='rokuTvSendHdmiInput("InputHDMI1")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M3 7h18v10H3z"/>
+            <path d="M7 7v10"/>
+            <path d="M17 7v10"/>
+            <path d="M3 12h18"/>
+            <path d="M7 3l5 4 5-4"/>
+          </svg>
+          <div class="label">HDMI1</div>
+        </button>
+        <button class="remote-btn btn-hdmi2" onclick='rokuTvSendHdmiInput("InputHDMI2")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M3 7h18v10H3z"/>
+            <path d="M7 7v10"/>
+            <path d="M17 7v10"/>
+            <path d="M3 12h18"/>
+            <path d="M7 3l5 4 5-4"/>
+          </svg>
+          <div class="label">HDMI2</div>
+        </button>
+        <button class="remote-btn btn-hdmi3" onclick='rokuTvSendHdmiInput("InputHDMI3")'>
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M3 7h18v10H3z"/>
+            <path d="M7 7v10"/>
+            <path d="M17 7v10"/>
+            <path d="M3 12h18"/>
+            <path d="M7 3l5 4 5-4"/>
+          </svg>
+          <div class="label">HDMI3</div>
+        </button>
+      </div>
+    </div>
     <div id='rokuTvFeedback' class="toast"></div>`;
   
   showModalContent(html, true, '.side-btn[title="TV"]');
@@ -206,15 +327,16 @@ window.showRokuTvModal = function() {
 
 window.fireTvSendCommand = function(cmd) {
   if (cmd === 'power') {
-    // Toggle the Hubitat virtual switch for Fire TV power (device 532)
-    const statusUrl = `${window.MAKER_API_BASE}/devices/532?access_token=${window.ACCESS_TOKEN}`;
+    // Toggle the Hubitat virtual switch for Fire TV power
+    const fireDeviceId = window.CONFIG.DEVICES.FIRE_POWER_SWITCH;
+    const statusUrl = window.CONFIG.HUBITAT.deviceStatusUrl(fireDeviceId);
     fetch(statusUrl)
       .then(r => r.json())
       .then(device => {
         const attrs = device?.attributes || {};
         const current = Array.isArray(attrs) ? (attrs.find(a => a.name === 'switch')?.currentValue) : attrs.switch;
         const nextCmd = current === 'on' ? 'off' : 'on';
-        const toggleUrl = `${window.MAKER_API_BASE}/devices/532/${nextCmd}?access_token=${window.ACCESS_TOKEN}`;
+        const toggleUrl = window.CONFIG.HUBITAT.deviceCommandUrl(fireDeviceId, nextCmd);
         return fetch(toggleUrl).then(() => nextCmd);
       })
       .then(nextCmd => {
@@ -254,14 +376,11 @@ window.fireTvSendCommand = function(cmd) {
   };
   const adbCommand = COMMAND_MAP[cmd] || String(cmd || '').toUpperCase();
   
-  fetch('http://192.168.4.145:8123/api/services/androidtv/adb_command', {
+  fetch(window.CONFIG.HOME_ASSISTANT.serviceUrl('androidtv', 'adb_command'), {
     method: 'POST',
-    headers: {
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhNzU0MDhhNTYxYmQ0NTVjOTA3NTFmZDg0OTQ2MzMzOCIsImlhdCI6MTc1NTE5OTg1NywiZXhwIjoyMDcwNTU5ODU3fQ.NMPxvnz0asFM66pm7LEH80BIGR9dU8pj6IZEX5v3WB4',
-      'Content-Type': 'application/json'
-    },
+    headers: window.CONFIG.HOME_ASSISTANT.getHeaders(),
     body: JSON.stringify({
-      entity_id: 'media_player.fire_tv_192_168_4_54',
+      entity_id: window.CONFIG.HOME_ASSISTANT.ENTITIES.FIRE_TV,
       command: adbCommand
     })
   }).then(r => {
@@ -281,20 +400,50 @@ window.fireTvSendCommand = function(cmd) {
   });
 }
 
+// Roku TV command sender - uses device 473 (Bedroom tv 94E742)
 window.rokuTvSendCommand = function(apiCmd) {
-  const rokuTvId = '474';
-  let url = `${window.MAKER_API_BASE}/devices/${rokuTvId}/${apiCmd}?access_token=${window.ACCESS_TOKEN}`;
+  const rokuTvId = window.CONFIG.DEVICES.BEDROOM_TV; // Device 473
+  
+  // Map UI commands to Roku API commands
+  const commandMap = {
+    'up': 'up',
+    'down': 'down',
+    'left': 'left',
+    'right': 'right',
+    'select': 'select',
+    'back': 'back',
+    'home': 'home',
+    'play': 'play',
+    'pause': 'pause',
+    'stop': 'stop',
+    'mute': 'mute',
+    'volumeUp': 'volumeUp',
+    'volumeDown': 'volumeDown',
+    'off': 'off',
+    'on': 'on'
+  };
+  
+  const command = commandMap[apiCmd] || apiCmd;
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(rokuTvId, command);
+  
   fetch(url).then(r => r.json()).then(() => {
-    const feedback = document.getElementById('rokuTvFeedback');
-    if (feedback) {
-      feedback.textContent = `Roku TV command "${apiCmd}" sent!`;
-      feedback.style.display = 'block';
-      setTimeout(() => { feedback.style.display = 'none'; }, 1800);
-    }
-    showToast(`Roku TV command "${apiCmd}" sent!`, 'success');
+    showToast(`Roku TV "${apiCmd}" sent!`, 'success');
   }).catch(err => {
     console.error('Failed to send Roku TV command:', err);
     showToast(`Failed to send Roku TV command: ${err.message}`, 'error');
+  });
+}
+
+// Roku TV HDMI input switcher - uses setInputSource command
+window.rokuTvSendHdmiInput = function(inputName) {
+  const rokuTvId = window.CONFIG.DEVICES.BEDROOM_TV; // Device 473
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(rokuTvId, 'setInputSource', inputName);
+  
+  fetch(url).then(r => r.json()).then(() => {
+    showToast(`Roku TV switched to ${inputName}`, 'success');
+  }).catch(err => {
+    console.error('Failed to switch Roku TV input:', err);
+    showToast(`Failed to switch input: ${err.message}`, 'error');
   });
 }
 
@@ -322,7 +471,8 @@ function showRollershadeModal() {
 
 window.rollershadeToggle = function() {
   // Toggle the blackoutswitch - if it's on, turn it off; if it's off, turn it on
-  fetch(`${window.MAKER_API_BASE}/devices/531?access_token=${window.ACCESS_TOKEN}`)
+  const blackoutId = window.CONFIG.DEVICES.BLACKOUT_SWITCH;
+  fetch(window.CONFIG.HUBITAT.deviceStatusUrl(blackoutId))
     .then(r => r.json())
     .then(device => {
       const isOn = device.attributes?.switch === 'on';
@@ -336,8 +486,9 @@ window.rollershadeToggle = function() {
 }
 
 window.rollershadeCommand = function(cmd) {
-  // Send command to blackoutswitch device (ID: 531)
-  let url = `${window.MAKER_API_BASE}/devices/531/${cmd}?access_token=${window.ACCESS_TOKEN}`;
+  // Send command to blackoutswitch device
+  const blackoutId = window.CONFIG.DEVICES.BLACKOUT_SWITCH;
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(blackoutId, cmd);
   fetch(url).then(r => r.json()).then(() => {
     const feedback = document.getElementById('rollershadeFeedback');
     if (feedback) {
@@ -354,16 +505,16 @@ window.rollershadeCommand = function(cmd) {
   });
 }
 
-// --- Lock: direct toggle for device 509 ---
+// --- Lock: direct toggle for front door lock ---
 window.toggleLock = async function() {
-  const lockId = '509';
+  const lockId = window.CONFIG.DEVICES.FRONT_DOOR_LOCK;
   try {
-    const statusRes = await fetch(`${window.MAKER_API_BASE}/devices/${lockId}?access_token=${window.ACCESS_TOKEN}`);
+    const statusRes = await fetch(window.CONFIG.HUBITAT.deviceStatusUrl(lockId));
     const dev = await statusRes.json();
     const attrs = dev.attributes || {};
     const current = Array.isArray(attrs) ? (attrs.find(a=>a.name==='lock')?.currentValue) : attrs.lock;
     const nextCmd = current === 'locked' ? 'unlock' : 'lock';
-    await fetch(`${window.MAKER_API_BASE}/devices/${lockId}/${nextCmd}?access_token=${window.ACCESS_TOKEN}`);
+    await fetch(window.CONFIG.HUBITAT.deviceCommandUrl(lockId, nextCmd));
     showToast(`Door ${nextCmd}ing...`, 'success');
   } catch (err) {
     console.error('Failed to toggle lock:', err);

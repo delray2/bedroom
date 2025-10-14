@@ -27,18 +27,42 @@ function initializeSliderCarousel(deviceId = null) {
 
   // Determine target device ID - use provided deviceId or default to bedroom group
   const targetDeviceId = deviceId || window.BEDROOM_GROUP_ID || '457';
+  
+  // Get current device state from state manager
+  let deviceState = null;
+  if (window.deviceStateManager && targetDeviceId) {
+    deviceState = window.deviceStateManager.getDevice(targetDeviceId);
+    console.log(`🎛️ Initializing slider carousel for device ${targetDeviceId}:`, deviceState);
+  }
+  
+  // Initialize slider state with actual device values or defaults
+  if (deviceState && deviceState.attributes) {
+    const attrs = deviceState.attributes;
+    sliderState.b = Math.max(1, Math.round(Number(attrs.level) || 0));
+    sliderState.h = Math.round((Number(attrs.hue) || 0) / 100 * 360);
+    sliderState.s = Math.round(Number(attrs.saturation) || 0);
+    sliderState.k = Math.round(Number(attrs.colorTemperature) || 3500);
+    console.log(`🎛️ Set slider state from device:`, sliderState);
+  } else {
+    // Use defaults if no device state available
+    sliderState.b = 60;
+    sliderState.s = 70;
+    sliderState.h = 30;
+    sliderState.k = 3500;
+    console.log(`🎛️ Using default slider state:`, sliderState);
+  }
 
-  // Create carousel HTML
+  // Create carousel HTML with actual device state values
   const carouselHTML = `
     <!-- Brightness -->
     <section class="page">
       <div></div>
       <div class="slider-wrap" id="brightness">
         <div class="pill"><div class="fill"></div></div>
-        <input id="input-brightness" class="v-range" type="range" min="0" max="100" value="60" />
+        <input id="input-brightness" class="v-range" type="range" min="0" max="100" value="${sliderState.b}" />
         <div class="gesture" data-for="input-brightness"></div>
       </div>
-      <div class="label">Brightness <span class="value" id="val-b">60%</span></div>
+      <div class="label">Brightness <span class="value" id="val-b">${sliderState.b}%</span></div>
     </section>
 
     <!-- Saturation -->
@@ -46,10 +70,10 @@ function initializeSliderCarousel(deviceId = null) {
       <div></div>
       <div class="slider-wrap" id="saturation">
         <div class="pill"><div class="fill"></div></div>
-        <input id="input-saturation" class="v-range" type="range" min="0" max="100" value="70" />
+        <input id="input-saturation" class="v-range" type="range" min="0" max="100" value="${sliderState.s}" />
         <div class="gesture" data-for="input-saturation"></div>
       </div>
-      <div class="label">Saturation <span class="value" id="val-s">70%</span></div>
+      <div class="label">Saturation <span class="value" id="val-s">${sliderState.s}%</span></div>
     </section>
 
     <!-- Hue -->
@@ -57,10 +81,10 @@ function initializeSliderCarousel(deviceId = null) {
       <div></div>
       <div class="slider-wrap" id="hue">
         <div class="pill"><div class="fill"></div></div>
-        <input id="input-hue" class="v-range" type="range" min="0" max="360" value="30" />
+        <input id="input-hue" class="v-range" type="range" min="0" max="360" value="${sliderState.h}" />
         <div class="gesture" data-for="input-hue"></div>
       </div>
-      <div class="label">Hue <span class="value" id="val-h">30°</span></div>
+      <div class="label">Hue <span class="value" id="val-h">${Math.round(sliderState.h)}°</span></div>
     </section>
 
     <!-- Kelvin -->
@@ -68,10 +92,10 @@ function initializeSliderCarousel(deviceId = null) {
       <div></div>
       <div class="slider-wrap" id="kelvin">
         <div class="pill"><div class="fill"></div></div>
-        <input id="input-kelvin" class="v-range" type="range" min="2000" max="6500" value="3500" />
+        <input id="input-kelvin" class="v-range" type="range" min="2000" max="6500" value="${sliderState.k}" />
         <div class="gesture" data-for="input-kelvin"></div>
       </div>
-      <div class="label">Temperature <span class="value" id="val-k">3500K</span></div>
+      <div class="label">Temperature <span class="value" id="val-k">${sliderState.k}K</span></div>
     </section>
   `;
 
@@ -101,96 +125,6 @@ function initializeSliderCarousel(deviceId = null) {
   setupStateManagerSubscription();
 }
 
-// Hide & clear side carousel content (exported properly)
-function hideSideCarosel() {
-  const caroseldiv = document.getElementById('side-carosel');
-  if (!caroseldiv) return;
-  caroseldiv.innerHTML = "";
-}
-window.hideSideCarosel = hideSideCarosel;
-
-// Initialize the side (inline) carousel
-function initializeSideCarousel(deviceId = null) {
-  const carousel = document.getElementById('side-carosel');
-  if (!carousel) {
-    console.error('Side carousel container not found');
-    return;
-  }
-
-  // Clear any existing content
-  carousel.innerHTML = '';
-
-  // Determine target device ID - use provided deviceId or default to bedroom group
-  const targetDeviceId = deviceId || window.BEDROOM_GROUP_ID || '457';
-
-  // Create carousel HTML with unique IDs for side carousel
-  const carouselHTML = `
-    <!-- Brightness -->
-    <section class="page">
-      <div></div>
-      <div class="slider-wrap" id="side-brightness">
-        <div class="pill"><div class="fill"></div></div>
-        <input id="side-input-brightness" class="v-range" type="range" min="0" max="100" value="60" />
-        <div class="gesture" data-for="side-input-brightness"></div>
-      </div>
-      <div class="label">Brightness <span class="value" id="side-val-b">60%</span></div>
-    </section>
-
-    <!-- Saturation -->
-    <section class="page">
-      <div></div>
-      <div class="slider-wrap" id="side-saturation">
-        <div class="pill"><div class="fill"></div></div>
-        <input id="side-input-saturation" class="v-range" type="range" min="0" max="100" value="70" />
-        <div class="gesture" data-for="side-input-saturation"></div>
-      </div>
-      <div class="label">Saturation <span class="value" id="side-val-s">70%</span></div>
-    </section>
-
-    <!-- Hue -->
-    <section class="page">
-      <div></div>
-      <div class="slider-wrap" id="side-hue">
-        <div class="pill"><div class="fill"></div></div>
-        <input id="side-input-hue" class="v-range" type="range" min="0" max="360" value="30" />
-        <div class="gesture" data-for="side-input-hue"></div>
-      </div>
-      <div class="label">Hue <span class="value" id="side-val-h">30°</span></div>
-    </section>
-
-    <!-- Kelvin -->
-    <section class="page">
-      <div></div>
-      <div class="slider-wrap" id="side-kelvin">
-        <div class="pill"><div class="fill"></div></div>
-        <input id="side-input-kelvin" class="v-range" type="range" min="2000" max="6500" value="3500" />
-        <div class="gesture" data-for="side-input-kelvin"></div>
-      </div>
-      <div class="label">Temperature <span class="value" id="side-val-k">3500K</span></div>
-    </section>
-
-    <div id="side-nav" class="nav-controls">
-      <button id="side-btn-prev" class="nav-btn nav-left" aria-label="Previous">&#x2039;</button>
-      <button id="side-btn-next" class="nav-btn nav-right" aria-label="Next">&#x203A;</button>
-    </div>
-  `;
-
-  carousel.innerHTML = carouselHTML;
-
-  // Store target device ID for command sending
-  carousel.dataset.targetDeviceId = targetDeviceId;
-
-  // Initialize side carousel functionality with separate functions
-  setupSideCarouselControls(targetDeviceId);
-  setupSideGestureHandlers(targetDeviceId);
-  setupSideNavigationControls();
-
-  // Load current device state
-  loadSideDeviceState(targetDeviceId);
-
-  // Setup state manager subscription for real-time updates
-  setupSideStateManagerSubscription();
-}
 
 // Setup carousel controls and state management (main)
 function setupCarouselControls(deviceId) {
@@ -230,7 +164,7 @@ function setupCarouselControls(deviceId) {
         sendDeviceCommand(deviceId, command, roundedValue);
       }
       debounceTimers[type] = null;
-    }, 500);
+    }, window.CONFIG?.TIMING?.SLIDER_DEBOUNCE || 500);
   }
 
   const setBrightness = v => { sliderState.b = Math.round(clamp(v, +$b.min, +$b.max)); render(); sendDebouncedCommand('brightness', 'setLevel', sliderState.b); };
@@ -380,12 +314,17 @@ function loadDeviceState(deviceId) {
 
   const currentState = window.deviceStateManager.getDevice(deviceId);
   if (currentState) {
+    console.log(`🎛️ Loading device state for ${deviceId}:`, currentState);
     updateSlidersFromState(currentState);
   } else {
+    console.log(`🎛️ No cached state for ${deviceId}, refreshing...`);
     window.deviceStateManager.refreshDevice(deviceId)
       .then(() => {
         const refreshedState = window.deviceStateManager.getDevice(deviceId);
-        if (refreshedState) updateSlidersFromState(refreshedState);
+        if (refreshedState) {
+          console.log(`🎛️ Refreshed device state for ${deviceId}:`, refreshedState);
+          updateSlidersFromState(refreshedState);
+        }
       })
       .catch(err => console.error('Failed to refresh device state:', err));
   }
@@ -393,10 +332,8 @@ function loadDeviceState(deviceId) {
 
 // Send command to device (shared)
 function sendDeviceCommand(deviceId, command, value) {
-  const API_BASE = window.MAKER_API_BASE || 'http://192.168.4.44/apps/api/37';
-  const ACCESS_TOKEN = window.ACCESS_TOKEN || '';
-  if (!API_BASE || !ACCESS_TOKEN) {
-    console.warn('Missing API base or access token; aborting command.');
+  if (!window.CONFIG?.HUBITAT) {
+    console.warn('Missing CONFIG; aborting command.');
     return;
   }
 
@@ -406,9 +343,7 @@ function sendDeviceCommand(deviceId, command, value) {
     value = Math.round((value / 360) * 100);
   }
 
-  let url = `${API_BASE}/devices/${deviceId}/${command}`;
-  if (value !== undefined) url += `/${value}`;
-  url += `?access_token=${ACCESS_TOKEN}`;
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(deviceId, command, value);
 
   fetch(url)
     .then(res => res.json())
@@ -437,19 +372,25 @@ function setupStateManagerSubscription() {
     if (!carousel) return;
     const targetDeviceId = carousel.dataset.targetDeviceId;
     if (targetDeviceId && String(deviceId) === String(targetDeviceId)) {
-      const attributes = state && state.attributes ? state.attributes : state;
-      updateSlidersFromState(attributes);
+      console.log(`🎛️ State update received for slider target device ${deviceId}:`, state);
+      updateSlidersFromState(state);
     }
   });
 }
 
-function updateSlidersFromState(attributes) {
+function updateSlidersFromState(deviceState) {
+  if (!deviceState) return;
+  
+  // Handle both direct attributes and nested attributes structure
+  const attributes = deviceState.attributes || deviceState;
   if (!attributes) return;
 
   const level = Number(attributes.level || 0);
   const hue = Number(attributes.hue || 0);
   const sat = Number(attributes.saturation || 0);
   const ct = Number(attributes.colorTemperature || 3500);
+
+  console.log(`🎛️ Updating sliders from state:`, { level, hue, sat, ct });
 
   sliderState.b = Math.max(1, Math.round(level));
   sliderState.h = Math.round((hue / 100) * 360);
@@ -481,263 +422,26 @@ function updateSlidersFromState(attributes) {
     if ($vs) $vs.textContent = `${sliderState.s}%`;
     if ($vh) $vh.textContent = `${Math.round(sliderState.h)}°`;
     if ($vk) $vk.textContent = `${sliderState.k}K`;
+    
+    console.log(`🎛️ Updated slider values:`, sliderState);
   }
 }
 
-// ========================================
-// SIDE CAROUSEL SPECIFIC FUNCTIONS
-// ========================================
-const sideSliderState = { b: 60, s: 70, h: 30, k: 3500 };
+// Make updateSlidersFromState globally available
+window.updateSlidersFromState = updateSlidersFromState;
 
-function setupSideCarouselControls(deviceId) {
-  const root = document.documentElement;
-  const $b = document.getElementById('side-input-brightness');
-  const $s = document.getElementById('side-input-saturation');
-  const $h = document.getElementById('side-input-hue');
-  const $k = document.getElementById('side-input-kelvin');
-  const $vb = document.getElementById('side-val-b');
-  const $vs = document.getElementById('side-val-s');
-  const $vh = document.getElementById('side-val-h');
-  const $vk = document.getElementById('side-val-k');
-
-  const debounceTimers = { brightness: null, saturation: null, hue: null, kelvin: null };
-
-  function render() {
-    root.style.setProperty('--side-b', sideSliderState.b);
-    root.style.setProperty('--side-s', sideSliderState.s);
-    root.style.setProperty('--side-h', sideSliderState.h);
-    root.style.setProperty('--side-k', sideSliderState.k);
-    if ($b) $b.value = sideSliderState.b;
-    if ($s) $s.value = sideSliderState.s;
-    if ($h) $h.value = sideSliderState.h;
-    if ($k) $k.value = sideSliderState.k;
-    if ($vb) $vb.textContent = `${sideSliderState.b}%`;
-    if ($vs) $vs.textContent = `${sideSliderState.s}%`;
-    if ($vh) $vh.textContent = `${Math.round(sideSliderState.h)}°`;
-    if ($vk) $vk.textContent = `${sideSliderState.k}K`;
-  }
-
-  function sendDebouncedCommand(type, command, value) {
-    if (debounceTimers[type]) clearTimeout(debounceTimers[type]);
-    debounceTimers[type] = setTimeout(() => {
-      if (deviceId) sendDeviceCommand(deviceId, command, Math.round(value));
-      debounceTimers[type] = null;
-    }, 500);
-  }
-
-  const setSideBrightness = v => { sideSliderState.b = Math.round(clamp(v, +$b.min, +$b.max)); render(); sendDebouncedCommand('brightness', 'setLevel', sideSliderState.b); };
-  const setSideSaturation = v => { sideSliderState.s = Math.round(clamp(v, +$s.min, +$s.max)); render(); sendDebouncedCommand('saturation', 'setSaturation', sideSliderState.s); };
-  const setSideHue        = v => { sideSliderState.h = Math.round(clamp(v, +$h.min, +$h.max)); sideSliderState.k = kelvinToHue(sideSliderState.h); render(); sendDebouncedCommand('hue', 'setHue', sideSliderState.h); };
-  const setSideKelvin     = v => { sideSliderState.k = Math.round(clamp(v, +$k.min, +$k.max)); sideSliderState.h = kelvinToHue(sideSliderState.k); render(); sendDebouncedCommand('kelvin', 'setColorTemperature', sideSliderState.k); };
-
-  function sendSideImmediateCommand(inputId) {
-    if (!deviceId) return;
-    let command, commandValue;
-    switch (inputId) {
-      case 'side-input-brightness': command = 'setLevel';            commandValue = Math.round(sideSliderState.b); break;
-      case 'side-input-saturation': command = 'setSaturation';       commandValue = Math.round(sideSliderState.s); break;
-      case 'side-input-hue':        command = 'setHue';              commandValue = Math.round(sideSliderState.h); break;
-      case 'side-input-kelvin':     command = 'setColorTemperature'; commandValue = Math.round(sideSliderState.k); break;
-      default: return;
-    }
-    const sliderType = inputId.replace('side-input-', '');
-    if (debounceTimers[sliderType]) { clearTimeout(debounceTimers[sliderType]); debounceTimers[sliderType] = null; }
-    sendDeviceCommand(deviceId, command, commandValue);
-  }
-
-  window.sideSliderSetters = { setSideBrightness, setSideSaturation, setSideHue, setSideKelvin };
-  window.sendSideImmediateCommand = sendSideImmediateCommand;
-
-  render();
-}
-
-function setupSideGestureHandlers(deviceId) {
-  function attachSideGesture(layer, input, onChange) {
-    if (!layer || !input) return;
-    const rect = () => layer.getBoundingClientRect();
-    const valueRange = +input.max - +input.min;
-
-    let startY = 0, startX = 0, startValue = +input.value;
-    let moved = false, dragging = false;
-    const ORIENT_EPS = 8;
-
-    layer.addEventListener('pointerdown', (e) => {
-      layer.setPointerCapture(e.pointerId);
-      startY = e.clientY; startX = e.clientX; startValue = +input.value;
-      moved = false; dragging = false;
-    });
-
-    layer.addEventListener('pointermove', (e) => {
-      if (!layer.hasPointerCapture(e.pointerId)) return;
-      const dy = startY - e.clientY;
-      const dx = Math.abs(e.clientX - startX);
-      const ady = Math.abs(dy);
-      if (!dragging && dx - ady > ORIENT_EPS) return;
-      if (!dragging && ady > ORIENT_EPS) dragging = true;
-      if (dragging) {
-        moved = true;
-        const h = rect().height;
-        const delta = (dy / h) * valueRange;
-        onChange(startValue + delta);
-        e.preventDefault();
-      }
-    });
-
-    layer.addEventListener('pointerup', (e) => {
-      if (!moved) {
-        const r = rect();
-        const percent = Math.min(1, Math.max(0, (r.bottom - e.clientY) / r.height));
-        const v = +input.min + percent * valueRange;
-        onChange(v);
-      }
-      if (window.sendSideImmediateCommand) window.sendSideImmediateCommand(input.id, input.value);
-      layer.releasePointerCapture(e.pointerId);
-      moved = false; dragging = false;
-    });
-
-    layer.addEventListener('pointercancel', () => { moved = false; dragging = false; });
-    layer.addEventListener('lostpointercapture', () => { moved = false; dragging = false; });
-  }
-
-  const $b = document.getElementById('side-input-brightness');
-  const $s = document.getElementById('side-input-saturation');
-  const $h = document.getElementById('side-input-hue');
-  const $k = document.getElementById('side-input-kelvin');
-
-  if (!window.sideSliderSetters) return;
-
-  attachSideGesture(document.querySelector('#side-brightness .gesture'), $b, window.sideSliderSetters.setSideBrightness);
-  attachSideGesture(document.querySelector('#side-saturation .gesture'), $s, window.sideSliderSetters.setSideSaturation);
-  attachSideGesture(document.querySelector('#side-hue .gesture'), $h, window.sideSliderSetters.setSideHue);
-  attachSideGesture(document.querySelector('#side-kelvin .gesture'), $k, window.sideSliderSetters.setSideKelvin);
-}
-
-let _sideNavActivityBound = false;
-function setupSideNavigationControls() {
-  const carousel = document.getElementById('side-carosel');
-  const nav = document.getElementById('side-nav');
-  if (!carousel || !nav) return;
-
-  const btnPrev = document.getElementById('side-btn-prev');
-  const btnNext = document.getElementById('side-btn-next');
-  let hideTimer = null;
-
-  function pageWidth() { return carousel.clientWidth; }
-  function pageCount() { return carousel.children.length; }
-  function currentIndex() { return Math.round(carousel.scrollLeft / pageWidth()); }
-
-  function goTo(index) {
-    const clamped = clamp(index, 0, pageCount() - 1);
-    carousel.scrollTo({ left: clamped * pageWidth(), behavior: 'smooth' });
-    updateDisabled(clamped);
-  }
-
-  function updateDisabled(idx = currentIndex()) {
-    btnPrev?.toggleAttribute('disabled', idx <= 0);
-    btnNext?.toggleAttribute('disabled', idx >= pageCount() - 1);
-  }
-
-  function showNav() {
-    nav.classList.add('nav-visible');
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => nav.classList.remove('nav-visible'), 2500);
-  }
-
-  btnPrev?.addEventListener('click', () => { showNav(); goTo(currentIndex() - 1); });
-  btnNext?.addEventListener('click', () => { showNav(); goTo(currentIndex() + 1); });
-  window.addEventListener('resize', () => updateDisabled());
-  carousel.addEventListener('scroll', () => updateDisabled());
-
-  if (!_sideNavActivityBound) {
-    const activityEvents = ['pointerdown', 'pointerup', 'mousemove', 'wheel', 'touchstart', 'keydown', 'click'];
-    activityEvents.forEach(ev => window.addEventListener(ev, showNav, { passive: true }));
-    _sideNavActivityBound = true;
-  }
-
-  showNav();
-  updateDisabled();
-}
-
-function loadSideDeviceState(deviceId) {
-  if (!window.deviceStateManager) {
-    console.warn('Device state manager not available');
-    return;
-  }
-  const currentState = window.deviceStateManager.getDevice(deviceId);
-  if (currentState) {
-    updateSideSlidersFromState(currentState);
-  } else {
-    window.deviceStateManager.refreshDevice(deviceId)
-      .then(() => {
-        const refreshedState = window.deviceStateManager.getDevice(deviceId);
-        if (refreshedState) updateSideSlidersFromState(refreshedState);
-      })
-      .catch(err => console.error('Failed to refresh device state:', err));
-  }
-}
-
-function setupSideStateManagerSubscription() {
-  if (!window.deviceStateManager) {
-    console.warn('Device state manager not available for side carousel subscription');
-    return;
-  }
-  if (window.sideCarouselUnsubscribe) {
-    window.sideCarouselUnsubscribe();
-  }
-
-  window.sideCarouselUnsubscribe = window.deviceStateManager.subscribe((deviceId, state) => {
-    const carousel = document.getElementById('side-carosel');
-    if (!carousel) return;
-    const targetDeviceId = carousel.dataset.targetDeviceId;
-    if (targetDeviceId && String(deviceId) === String(targetDeviceId)) {
-      const attributes = state && state.attributes ? state.attributes : state;
-      updateSideSlidersFromState(attributes);
-    }
+// Debug function to check slider state
+window.debugSliderState = function() {
+  console.log('🎛️ Current slider state:', sliderState);
+  console.log('🎛️ Slider elements:', {
+    brightness: document.getElementById('input-brightness')?.value,
+    saturation: document.getElementById('input-saturation')?.value,
+    hue: document.getElementById('input-hue')?.value,
+    kelvin: document.getElementById('input-kelvin')?.value
   });
-}
+  console.log('🎛️ Target device ID:', document.getElementById('sliderCarousel')?.dataset.targetDeviceId);
+};
 
-function updateSideSlidersFromState(attributes) {
-  if (!attributes) return;
 
-  const level = Number(attributes.level || 0);
-  const hue = Number(attributes.hue || 0);
-  const sat = Number(attributes.saturation || 0);
-  const ct = Number(attributes.colorTemperature || 3500);
 
-  sideSliderState.b = Math.max(1, Math.round(level));
-  sideSliderState.h = Math.round((hue / 100) * 360);
-  sideSliderState.s = Math.round(sat);
-  sideSliderState.k = Math.round(ct);
 
-  if (window.sideSliderSetters) {
-    const root = document.documentElement;
-    root.style.setProperty('--side-b', sideSliderState.b);
-    root.style.setProperty('--side-s', sideSliderState.s);
-    root.style.setProperty('--side-h', sideSliderState.h);
-    root.style.setProperty('--side-k', sideSliderState.k);
-
-    const $b = document.getElementById('side-input-brightness');
-    const $s = document.getElementById('side-input-saturation');
-    const $h = document.getElementById('side-input-hue');
-    const $k = document.getElementById('side-input-kelvin');
-    const $vb = document.getElementById('side-val-b');
-    const $vs = document.getElementById('side-val-s');
-    const $vh = document.getElementById('side-val-h');
-    const $vk = document.getElementById('side-val-k');
-
-    if ($b) $b.value = sideSliderState.b;
-    if ($s) $s.value = sideSliderState.s;
-    if ($h) $h.value = sideSliderState.h;
-    if ($k) $k.value = sideSliderState.k;
-    if ($vb) $vb.textContent = `${sideSliderState.b}%`;
-    if ($vs) $vs.textContent = `${sideSliderState.s}%`;
-    if ($vh) $vh.textContent = `${Math.round(sideSliderState.h)}°`;
-    if ($vk) $vk.textContent = `${sideSliderState.k}K`;
-  }
-}
-
-// Export for global use
-window.initializeSliderCarousel = initializeSliderCarousel;
-window.initializeSideCarousel = initializeSideCarousel;
-window.loadDeviceState = loadDeviceState;
-window.setupStateManagerSubscription = setupStateManagerSubscription;

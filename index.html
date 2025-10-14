@@ -8,11 +8,15 @@
   <meta name="theme-color" content="#232526">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="video-stream.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.12/dist/hls.min.js"></script>
+  <script src="scripts/video-stream.js"></script>
   <link rel="stylesheet" href="styles/main.css">
-  <!-- Unified API service -->
-  <script src="scripts/api.js"></script>
+  <!-- Define Spotify Web Playback SDK callback before any scripts load -->
+  <script>
+    window.onSpotifyWebPlaybackSDKReady = function() {
+      console.log('Spotify Web Playback SDK ready (global callback)');
+    };
+  </script>
 </head>
 <body>
   <div class="blob1 blob"></div>
@@ -20,14 +24,11 @@
 <div class="blob3 blob"></div>
 <div class="blob blob4"></div>
 
-  <div id="lockIndicator" class="lock-indicator" aria-live="polite" aria-label="Front door lock" title="Front door lock">🔓</div>
+  <div id="lockIndicator" class="lock-indicator" aria-live="polite" aria-label="Front door lock" title="Front door lock" style="background-image: url('assets/emoji/1f513.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></div>
   <!-- Modern Clock -->
   <div class="clock">
     <div class="date" id="currentDate"></div>
     <div class="time" id="currentTime"></div>
-  </div>
-  <div id="side-carousel-container" class="side-carousel-container">
-    <div id="side-carosel"></div>
   </div>
   <div class="switch-card">
     <div class="wall-plate-wrap">
@@ -36,26 +37,75 @@
         <span class="paddle-label">All</span>
       </div>
       <div class="wall-plate">
-      <div class="paddle-switch off" id="paddleSwitch">
-        <span class="power-icon">⏻</span>
+        <!-- Left paddle switch for Lights -->
+        <div class="paddle-switch-container">
+          <div class="paddle-percentage-left" id="paddlePercentageLeft">0%</div>
+          <div
+            id="paddleSwitch"
+            class="switch"
+            role="switch"
+            aria-checked="false"
+            aria-label="Dimmer switch"
+            tabindex="0"
+          >
+            <div class="track"></div>
+            <div class="paddle"><div class="glyph" aria-hidden="true">ON</div></div>
+
+            <!-- Dimmer HUD (appears on long‑press) -->
+            <div class="hud" aria-hidden="true">
+              <div></div>
+              <div class="percent"><span id="percentVal">0</span><small>%</small></div>
+              <div class="hint">slide to dim</div>
+              <div class="vslider" aria-hidden="true">
+                <div class="ticks"><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right paddle switch for All -->
+        <div class="paddle-switch-container">
+          <div
+            id="paddleSwitch2"
+            class="switch"
+            role="switch"
+            aria-checked="false"
+            aria-label="All devices switch"
+            tabindex="0"
+          >
+            <div class="track"></div>
+            <div class="paddle"><div class="glyph" aria-hidden="true">ON</div></div>
+
+            <!-- Dimmer HUD (appears on long‑press) -->
+            <div class="hud" aria-hidden="true">
+              <div></div>
+              <div class="hint">slide to dim</div>
+              <div class="vslider" aria-hidden="true">
+                <div class="ticks"><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="fill"></div>
+              </div>
+            </div>
+          </div>
+          <div class="paddle-percentage-right" id="paddlePercentageRight">0%</div>
+        </div>
       </div>
-      <div class="paddle-switch off" id="paddleSwitch2">
-        <span class="power-icon">⏻</span>
-      </div>
-      </div>
+      
+      <!-- Hold hint text -->
+      <div class="hold-hint" id="holdHint">HOLD for Dimmer</div>
     </div>
       
       
-    <div class="side-btns side-btns-visible" id="sideBtns">
-      <button class="side-btn" title="TV" aria-label="TV" data-action="showTvModal">📺</button>
-      <button class="side-btn" title="Lights" aria-label="Lights" data-action="showBubbleChartModal">💡</button>
-      <button class="side-btn" class="rollershadeSideBtn"title="Rollershade" aria-label="Rollershade" data-action="showRollershadeModal">🪟</button>
-      <button class="side-btn" title="Lock" aria-label="Lock" data-action="toggleLock">🔒</button>
-      <button class="side-btn" title="Camera" aria-label="Camera" data-action="showCameraModal">📷</button>
-      <button class="side-btn" title="Thermostat" aria-label="Thermostat" data-action="showThermostatModal">🌡️</button>
-      <button class="side-btn" title="Music" aria-label="Music" data-action="showMusicModal">🎵</button>
+    <div class="side-btns" id="sideBtns">
+      <button class="side-btn" title="TV" aria-label="TV" data-action="showTvModal" style="background-image: url('assets/emoji/1f4fa.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn" title="Lights" aria-label="Lights" data-action="showBubbleChartModal" style="background-image: url('assets/emoji/1f4a1.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn rollershadeSideBtn" title="Rollershade" aria-label="Rollershade" data-action="showRollershadeModal" style="background-image: url('assets/roller-shade.png'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn" title="Lock" aria-label="Lock" data-action="toggleLock" style="background-image: url('assets/emoji/1f512.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn" title="Camera" aria-label="Camera" data-action="showCameraModal" style="background-image: url('assets/emoji/1f4f7.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn" title="Thermostat" aria-label="Thermostat" data-action="showThermostatModal" style="background-image: url('assets/emoji/1f321.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
+      <button class="side-btn" title="Music" aria-label="Music" data-action="showMusicModal" style="background-image: url('assets/emoji/1f3b5.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
       <!-- Theme toggle button -->
-      <button class="side-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">🌙</button>
+      <button class="side-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme" style="background-image: url('assets/emoji/1f319.svg'); background-size: 50%; background-position: center; background-repeat: no-repeat;"></button>
     </div>
   </div>
 
@@ -76,7 +126,9 @@
     </div>
   </div>
   <!-- External JavaScript files -->
-  <script src="statemanager/state-manager.js"></script>
+  <script src="scripts/config.js"></script>
+  <script src="scripts/ip-detection.js"></script>
+  <script src="statemanager/unified-state-manager.js"></script>
   <script src="scripts/main.js"></script>
   <script src="scripts/modal.js"></script>
   <script src="scripts/ui.js"></script>
@@ -87,6 +139,9 @@
   <script src="scripts/camera.js"></script>
   <script src="scripts/scenes.js" type="module"></script>
   <script src="scripts/lifx-themes.js"></script>
+  <script src="scripts/paddle-switch.js"></script>
   <script src="scripts/slider-carousel.js"></script>
+  <script src="scripts/music-modal.js"></script>
+  <script src="scripts/music-overlay.js"></script>
 </body>
 </html>

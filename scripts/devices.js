@@ -4,6 +4,10 @@ if (!window.devicePendingCommands) {
 }
 
 async function openDeviceModal(label, deviceId, showBack = false) {
+  // Track which device modal is currently open
+  window.currentOpenDeviceId = deviceId;
+  console.log(`Opening device modal for device ${deviceId}: ${label}`);
+  
   if (!livingRoomDevices[deviceId]) {
     showModalContent(`<div class="modal-header">${label}</div>
       <div class="device-coming-soon">Controls for <b>${label}</b> (ID: ${deviceId}) coming soon...</div>`, showBack, '.side-btn[title="Lights"]');
@@ -154,6 +158,7 @@ function renderDeviceControls(device, deviceId, showBack = false) {
   // Setup carousel sliders for this device
   setTimeout(() => {
     try {
+      console.log(`🎛️ Initializing slider carousel for device ${deviceId}`);
       initializeSliderCarousel(deviceId);
     } catch (error) {
       console.error('Error setting up slider carousel for device:', deviceId, error);
@@ -179,9 +184,7 @@ function renderDeviceControls(device, deviceId, showBack = false) {
 
 
 function sendDeviceCommand(deviceId, command, value) {
-  let url = `${window.MAKER_API_BASE}/devices/${deviceId}/${command}`;
-  if (value !== undefined) url += `/${value}`;
-  url += `?access_token=${window.ACCESS_TOKEN}`;
+  const url = window.CONFIG.HUBITAT.deviceCommandUrl(deviceId, command, value);
   
   fetch(url)
     .then(res => res.json())

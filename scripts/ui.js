@@ -4,75 +4,30 @@
 
 // --- Side buttons inactivity logic ---
 const sideBtns = document.getElementById('sideBtns');
-// NOTE: keep the DOM id spelling as-is to match HTML/CSS (#side-carosel)
-const sideCarosel = document.getElementById('side-carosel');
 
 let inactivityTimeout;
-const INACTIVITY_DELAY = 10000; // 10 seconds
+const INACTIVITY_DELAY = window.CONFIG?.TIMING?.INACTIVITY_DELAY || 30000; // 30 seconds
 
 function showSideBtns() {
   sideBtns.classList.add('side-btns-visible');
-
-  // Show the left-side carousel
-  const container = document.getElementById('side-carousel-container');
-  container.classList.add('side-carosel-visible');
-
-  const rail = document.getElementById('side-carosel');
-  if (!rail || rail.children.length === 0) {
-    window.initializeSideCarousel(window.BEDROOM_GROUP_ID || 457);
-  }
-
-  requestAnimationFrame(positionSideCarousel);
 }
 
 function hideSideBtns() {
   sideBtns.classList.remove('side-btns-visible');
-
-  const container = document.getElementById('side-carousel-container');
-  container.classList.remove('side-carosel-visible');
-
-  window.hideSideCarosel?.();
 }
 
-function positionSideCarousel() {
-  const container = document.getElementById('side-carousel-container');
-  const rail = document.getElementById('side-carosel');
-  const plate = document.querySelector('.wall-plate');
-  const sideBtns = document.getElementById('sideBtns');
-  if (!container || !rail || !plate || !sideBtns) return;
 
-  const plateBox = plate.getBoundingClientRect();
-  const btnsBox = sideBtns.getBoundingClientRect();
-
-  const rightGap = Math.max(0, btnsBox.left - plateBox.right);
-  const desiredWidth = Math.max(280, Math.min(420, btnsBox.width));
-
-  const targetRightEdge = plateBox.left - rightGap;
-  let leftPx = targetRightEdge - desiredWidth;
-  if (leftPx < 12) leftPx = 12;
-
-  container.style.left = `${leftPx}px`;
-  container.style.width = `${desiredWidth}px`;
-
-  rail.style.width = '100%';
-  rail.style.height = `${Math.min(plateBox.height, 0.5 * window.innerHeight)}px`;
-  rail.style.position = 'relative';
-
-  const sideNav = document.getElementById('side-nav');
-  if (sideNav) {
-    sideNav.style.width = '100%';
-    sideNav.style.height = '100%';
-  }
-}
-
-window.addEventListener('resize', positionSideCarousel);
-window.addEventListener('orientationchange', positionSideCarousel);
 
 function resetInactivityTimer() {
   showSideBtns();
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(hideSideBtns, INACTIVITY_DELAY);
 }
+
+// Make functions available globally
+window.resetInactivityTimer = resetInactivityTimer;
+window.showSideBtns = showSideBtns;
+window.hideSideBtns = hideSideBtns;
 
 // List of events that count as activity
 const activityEvents = ['mousemove', 'mousedown', 'touchstart', 'keydown'];
@@ -84,10 +39,9 @@ function startInactivityListeners() {
   resetInactivityTimer();
 }
 
-// Wait for first user interaction to show side buttons and start timer logic
+// Wait for first user interaction to show side buttons
 function onFirstActivity() {
   showSideBtns();
-  startInactivityListeners();
   activityEvents.forEach(event => {
     window.removeEventListener(event, onFirstActivity, true);
   });
@@ -95,6 +49,10 @@ function onFirstActivity() {
 
 // Initialize side button functionality
 document.addEventListener('DOMContentLoaded', () => {
+  // Start inactivity listeners immediately instead of waiting for first activity
+  startInactivityListeners();
+  
+  // Keep the first activity handler for any additional setup if needed
   activityEvents.forEach(event => {
     window.addEventListener(event, onFirstActivity, true);
   });
@@ -103,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const emojiToSvg = new Map([
     ['📺', '1f4fa'],
     ['💡', '1f4a1'],
-    ['🪟', '1f6cf'],
+    ['🪟', '1f6cf'],  // Rollershade/window emoji
     ['🔒', '1f512'],
     ['🔓', '1f513'],
     ['📷', '1f4f7'],
@@ -131,6 +89,18 @@ document.addEventListener('DOMContentLoaded', () => {
     ['✅', '2705'],
     ['☰', '2630'],
   ]);
+  
+  // For rollershade button specifically, always use the PNG image since emoji may not render
+  const rollershadeBtn = document.querySelector('.side-btn[title="Rollershade"]');
+  if (rollershadeBtn) {
+    // Always use the PNG image for rollershade button
+    rollershadeBtn.style.backgroundImage = "url('assets/roller-shade.png')";
+    rollershadeBtn.style.backgroundSize = '60%';
+    rollershadeBtn.style.backgroundPosition = 'center';
+    rollershadeBtn.style.backgroundRepeat = 'no-repeat';
+    rollershadeBtn.style.color = 'transparent'; // Hide the emoji text
+    console.log('Applied rollershade PNG image to button');
+  }
 
   function replaceEmojiNode(el) {
     const text = (el.textContent || '').trim();
@@ -142,12 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.style.backgroundImage = `url("${svgPath}")`;
   }
 
-  // Replace in side buttons (button text is the emoji)
-  document.querySelectorAll('.side-btn').forEach(btn => {
-    // skip theme toggle; it switches icons dynamically
-    if (btn.id === 'themeToggle') return;
-    replaceEmojiNode(btn);
-  });
+  // Emoji replacement logic removed - side buttons now have direct background images in HTML
 
   // Replace inline icon spans inside bubble buttons/modal actions
   document.querySelectorAll('.bubble-btn .icon, .power-icon, #lockIndicator').forEach(replaceEmojiNode);
@@ -155,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Lock indicator helpers ---
 function getLockDeviceId() {
-  return localStorage.getItem('FRONT_DOOR_LOCK_ID') || '509';
+  return localStorage.getItem('FRONT_DOOR_LOCK_ID') || window.CONFIG.DEVICES.FRONT_DOOR_LOCK;
 }
 
 function setLockIndicator(state) {
@@ -163,23 +128,25 @@ function setLockIndicator(state) {
   if (!el) return;
   const normalized = (state || '').toString().toLowerCase();
   if (normalized === 'locked') {
-    el.textContent = '🔒';
+    el.style.backgroundImage = "url('assets/emoji/1f512.svg')";
+    el.style.backgroundSize = "50%";
+    el.style.backgroundPosition = "center";
+    el.style.backgroundRepeat = "no-repeat";
     el.classList.add('locked');
     el.classList.remove('unlocked');
   } else if (normalized === 'unlocked') {
-    el.textContent = '🔓';
+    el.style.backgroundImage = "url('assets/emoji/1f513.svg')";
+    el.style.backgroundSize = "50%";
+    el.style.backgroundPosition = "center";
+    el.style.backgroundRepeat = "no-repeat";
     el.classList.add('unlocked');
     el.classList.remove('locked');
   } else {
-    el.textContent = '❔';
+    el.style.backgroundImage = "url('assets/emoji/2753.svg')"; // Question mark
+    el.style.backgroundSize = "50%";
+    el.style.backgroundPosition = "center";
+    el.style.backgroundRepeat = "no-repeat";
     el.classList.remove('locked', 'unlocked');
-  }
-  // apply emoji replacement if needed
-  const emojiToSvg = { '🔒': '1f512', '🔓': '1f513' };
-  const code = emojiToSvg[el.textContent];
-  if (code) {
-    el.classList.add('emoji-replaced', 'emoji-bg');
-    el.style.backgroundImage = `url("assets/emoji/${code}.svg")`;
   }
 }
 
@@ -246,7 +213,7 @@ function connectWebSocket() {
   try {
     ws?.close?.();
   } catch {}
-  ws = new WebSocket('ws://localhost:4712');
+  ws = new WebSocket(window.CONFIG.BACKEND.websocketUrl());
 
   ws.onopen = function () {
     console.log('WebSocket connected');
@@ -327,6 +294,12 @@ function handleWebSocketMessage(msg) {
     case 'reolink_webhook':
       // handled earlier
       break;
+    case 'spotify_state_change':
+      // Route Spotify state changes to the unified state manager
+      if (window.deviceStateManager) {
+        window.deviceStateManager.handleWebSocketMessage(JSON.stringify(msg));
+      }
+      break;
     default:
       console.log('Unknown WebSocket message type:', type, msg);
   }
@@ -380,23 +353,38 @@ function updateOpenDeviceModals(deviceId, attributes) {
   const modalBody = document.getElementById('modalBody');
   if (!modalBody) return;
 
-  // Update generic device controls
-  const deviceControls = modalBody.querySelector('#deviceControls');
-  if (deviceControls && deviceControls.style.display !== 'none') {
-    const openId = deviceControls.getAttribute('data-device-id');
-    if (openId && String(openId) === String(deviceId)) {
+  // Check if a device modal is currently open by looking for sliderCarousel
+  const sliderCarousel = modalBody.querySelector('#sliderCarousel');
+  if (sliderCarousel && sliderCarousel.style.display !== 'none') {
+    // Check if this is the currently open device modal
+    const currentOpenDeviceId = window.currentOpenDeviceId;
+    if (currentOpenDeviceId && String(currentOpenDeviceId) === String(deviceId)) {
+      console.log(`Updating open device modal for device ${deviceId}:`, attributes);
+      
+      // Get the latest device state from state manager
       const attrs = (window.deviceStateManager && window.deviceStateManager.getDevice(deviceId)) || {};
+      
+      // Update the device controls with fresh data
       if (typeof window.renderDeviceControls === 'function') {
-        window.renderDeviceControls({ attributes: attrs, capabilities: [] }, deviceId, true);
+        // Use the device info from DEVICE_MAP or bedroomDevices
+        const deviceInfo = window.DEVICE_MAP?.[deviceId] || window.bedroomDevices?.[deviceId];
+        const capabilities = deviceInfo?.capabilities || [];
+        window.renderDeviceControls({ attributes: attrs, capabilities }, deviceId, true);
       } else if (window.uiManager?.loadDeviceControls) {
         window.uiManager.loadDeviceControls(deviceId, true);
+      }
+      
+      // Also update sliders directly if carousel is already initialized
+      if (typeof window.updateSlidersFromState === 'function') {
+        console.log(`🎛️ Updating sliders directly for device ${deviceId}`);
+        window.updateSlidersFromState(attrs);
       }
     }
   }
 
   // Thermostat re-render
-  if (window.uiManager?.isThermostatModalVisible?.() && String(deviceId) === '86') {
-    const dev = { attributes: (window.deviceStateManager && window.deviceStateManager.getDevice('86')) || {} };
+  if (window.uiManager?.isThermostatModalVisible?.() && String(deviceId) === window.CONFIG.DEVICES.ENTRYWAY_THERMOSTAT) {
+    const dev = { attributes: (window.deviceStateManager && window.deviceStateManager.getDevice(window.CONFIG.DEVICES.ENTRYWAY_THERMOSTAT)) || {} };
     if (typeof window.uiManager.renderThermostat === 'function') {
       window.uiManager.renderThermostat(dev);
     }
@@ -427,7 +415,7 @@ function handleDeviceNotification(payload) {
 // Handle LRGroup updates (example: Fan 2)
 function handleLRGroupUpdate(payload) {
   console.log('LRGroup update received:', payload);
-  if (String(payload.deviceId) === '451') {
+  if (String(payload.deviceId) === window.CONFIG.DEVICES.BEDROOM_FAN_2) {
     if (payload.value !== undefined || payload.name === 'switch') {
       if (typeof window.setPaddleSwitch === 'function') {
         const v = payload.value ?? payload.currentValue ?? payload.value;
@@ -452,15 +440,15 @@ function handleBulkDeviceRefreshRequest(deviceIds) {
 // Request initial state refresh for key devices
 function requestInitialStateRefresh() {
   const keyDevices = [
-    '451', // Bedroom Fan 2
-    '509', // Front Door Lock
-    window.BEDROOM_GROUP_ID, // BedroomLifxGOG
-    '447', // Bed Lamp
-    '450', // Laundry 1
-    '480', // Bedroom Fan 1
-    '86',  // Entryway Thermostat
-    '473', // Bedroom TV
-    '474'  // 50" Philips Roku TV
+    window.CONFIG.DEVICES.BEDROOM_FAN_2,
+    window.CONFIG.DEVICES.FRONT_DOOR_LOCK,
+    window.CONFIG.DEVICES.BEDROOM_GROUP,
+    window.CONFIG.DEVICES.BED_LAMP,
+    window.CONFIG.DEVICES.LAUNDRY_1,
+    window.CONFIG.DEVICES.BEDROOM_FAN_1,
+    window.CONFIG.DEVICES.ENTRYWAY_THERMOSTAT,
+    window.CONFIG.DEVICES.BEDROOM_TV,
+    window.CONFIG.DEVICES.ROKU_TV_50
   ].filter(Boolean);
 
   keyDevices.forEach(deviceId => {
