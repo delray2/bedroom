@@ -2,53 +2,83 @@
   'use strict';
 
   const TEMPLATE = `
-    <div class="music-sheet" id="musicSheet" data-authenticated="false" data-has-track="false" data-playing="false">
-      <div class="music-sheet__backdrop" data-role="backdrop"></div>
-      <div class="music-sheet__layout">
-        <div class="music-sheet__artwork">
-          <div class="music-sheet__artwork-image" data-role="artwork"></div>
-          <div class="music-sheet__artwork-fallback" data-role="artworkFallback">🎵</div>
-        </div>
-        <div class="music-sheet__content">
-          <div class="music-sheet__status" data-role="status">Checking Spotify…</div>
-          <div class="music-sheet__track" data-role="track">
-            <h2 class="music-sheet__track-title" data-role="trackTitle">No music playing</h2>
-            <p class="music-sheet__track-artist" data-role="trackArtist"></p>
-          </div>
-          <div class="music-sheet__progress" data-role="progress">
-            <div class="music-sheet__progress-bar">
-              <div class="music-sheet__progress-fill" data-role="progressFill"></div>
-            </div>
-            <div class="music-sheet__progress-times">
-              <span data-role="elapsed">0:00</span>
-              <span data-role="duration">0:00</span>
-            </div>
-          </div>
-          <div class="music-sheet__controls">
-            <button class="music-sheet__btn music-sheet__btn--icon" data-action="previous" aria-label="Previous track">⏮</button>
-            <button class="music-sheet__btn music-sheet__btn--play" data-action="toggle" aria-label="Play or pause">
-              <span data-role="playIcon">▶</span>
+    <div class="music-bubble" id="musicSheet" data-authenticated="false" data-has-track="false" data-playing="false">
+      <div class="music-bubble__background" data-role="background"></div>
+      <div class="music-bubble__overlay"></div>
+      <div class="music-bubble__surface">
+        <header class="music-bubble__header">
+          <div class="music-bubble__status" data-role="status">Checking Spotify…</div>
+          <div class="music-bubble__actions">
+            <button class="music-bubble__icon-btn" data-action="search" aria-label="Search Spotify" disabled>
+              <span>🔍</span>
             </button>
-            <button class="music-sheet__btn music-sheet__btn--icon" data-action="next" aria-label="Next track">⏭</button>
+            <button class="music-bubble__icon-btn" data-action="devices" aria-label="Choose device" disabled>
+              <span>📱</span>
+            </button>
           </div>
-          <div class="music-sheet__volume" data-role="volume">
-            <label class="music-sheet__volume-label" for="musicVolume">Volume</label>
-            <input type="range" id="musicVolume" min="0" max="100" value="50" data-role="volumeSlider">
-            <span class="music-sheet__volume-value" data-role="volumeValue">50%</span>
+        </header>
+        <div class="music-bubble__artwork-badge" data-role="artworkFallback">🎵</div>
+        <div class="music-bubble__info" data-role="track">
+          <h2 class="music-bubble__track-title" data-role="trackTitle">No music playing</h2>
+          <p class="music-bubble__track-artist" data-role="trackArtist"></p>
+          <p class="music-bubble__device" data-role="device"></p>
+        </div>
+        <div class="music-bubble__progress" data-role="progress">
+          <div class="music-bubble__progress-bar">
+            <div class="music-bubble__progress-fill" data-role="progressFill"></div>
           </div>
-          <div class="music-sheet__empty" data-role="emptyState">
-            Start playing Spotify on any device to see controls here.
+          <div class="music-bubble__progress-times">
+            <span data-role="elapsed">0:00</span>
+            <span data-role="duration">0:00</span>
           </div>
+        </div>
+        <div class="music-bubble__controls">
+          <button class="music-bubble__btn" data-action="previous" aria-label="Previous track">⏮</button>
+          <button class="music-bubble__btn music-bubble__btn--play" data-action="toggle" aria-label="Play or pause">
+            <span data-role="playIcon">▶</span>
+          </button>
+          <button class="music-bubble__btn" data-action="next" aria-label="Next track">⏭</button>
+        </div>
+        <div class="music-bubble__volume" data-role="volume">
+          <label class="music-bubble__volume-label" for="musicVolume">Volume</label>
+          <input type="range" id="musicVolume" min="0" max="100" value="50" data-role="volumeSlider">
+          <span class="music-bubble__volume-value" data-role="volumeValue">50%</span>
+        </div>
+        <div class="music-bubble__empty" data-role="emptyState">
+          Start playing Spotify on any device to see controls here.
         </div>
       </div>
-      <div class="music-sheet__login" data-role="login">
-        <div class="music-sheet__login-card">
+      <div class="music-bubble__login" data-role="login">
+        <div class="music-bubble__login-card">
           <h3>Connect Spotify</h3>
           <p>Sign in to Spotify to control your music from the dashboard.</p>
-          <button class="music-sheet__btn music-sheet__btn--primary" data-action="login">Login with Spotify</button>
+          <button class="music-bubble__btn music-bubble__btn--primary" data-action="login">Login with Spotify</button>
         </div>
       </div>
-      <div class="music-sheet__error" data-role="error" hidden></div>
+      <div class="music-bubble__panel music-bubble__panel--search" data-role="searchPanel" aria-hidden="true">
+        <div class="music-bubble__panel-header">
+          <h3>Search Spotify</h3>
+          <button class="music-bubble__icon-btn music-bubble__icon-btn--small" data-action="closePanel" data-panel="search" aria-label="Close search">✕</button>
+        </div>
+        <div class="music-bubble__panel-body">
+          <div class="music-bubble__input">
+            <input type="search" placeholder="Search songs, artists, or albums" autocomplete="off" data-role="searchInput">
+          </div>
+          <div class="music-bubble__panel-message" data-role="searchMessage">Start typing to search.</div>
+          <div class="music-bubble__panel-results" data-role="searchResults"></div>
+        </div>
+      </div>
+      <div class="music-bubble__panel music-bubble__panel--devices" data-role="devicesPanel" aria-hidden="true">
+        <div class="music-bubble__panel-header">
+          <h3>Choose a device</h3>
+          <button class="music-bubble__icon-btn music-bubble__icon-btn--small" data-action="closePanel" data-panel="devices" aria-label="Close devices">✕</button>
+        </div>
+        <div class="music-bubble__panel-body">
+          <div class="music-bubble__panel-message" data-role="devicesMessage">Loading devices…</div>
+          <div class="music-bubble__panel-results" data-role="devicesList"></div>
+        </div>
+      </div>
+      <div class="music-bubble__error" data-role="error" hidden></div>
     </div>
   `;
 
@@ -66,6 +96,10 @@
       this.isAdjustingVolume = false;
       this.volumeAdjustTimeout = null;
       this.volumeDebounce = null;
+      this.activePanel = null;
+      this.searchDebounceTimeout = null;
+      this.pendingSearchToken = 0;
+      this.deviceLoadPromise = null;
     }
 
     open() {
@@ -143,10 +177,11 @@
       if (!this.root) return;
       const q = (role) => this.root.querySelector(`[data-role="${role}"]`);
       this.elements = {
+        background: q('background'),
         status: q('status'),
         trackTitle: q('trackTitle'),
         trackArtist: q('trackArtist'),
-        artwork: q('artwork'),
+        device: q('device'),
         artworkFallback: q('artworkFallback'),
         progressFill: q('progressFill'),
         elapsed: q('elapsed'),
@@ -156,8 +191,17 @@
         volumeSlider: q('volumeSlider'),
         volumeValue: q('volumeValue'),
         login: q('login'),
-        error: q('error')
+        error: q('error'),
+        searchPanel: q('searchPanel'),
+        searchInput: q('searchInput'),
+        searchResults: q('searchResults'),
+        searchMessage: q('searchMessage'),
+        devicesPanel: q('devicesPanel'),
+        devicesList: q('devicesList'),
+        devicesMessage: q('devicesMessage')
       };
+      this.elements.searchButton = this.root.querySelector('[data-action="search"]');
+      this.elements.devicesButton = this.root.querySelector('[data-action="devices"]');
     }
 
     bindEvents() {
@@ -200,6 +244,38 @@
         this.listeners.push({ target: this.elements.volumeSlider, type: 'change', handler: changeHandler });
         this.listeners.push({ target: this.elements.volumeSlider, type: 'pointerup', handler: pointerUpHandler });
       }
+
+      if (this.elements.searchInput) {
+        const inputHandler = (event) => {
+          this.handleSearchInput(event.target.value);
+        };
+        this.elements.searchInput.addEventListener('input', inputHandler);
+        this.listeners.push({ target: this.elements.searchInput, type: 'input', handler: inputHandler });
+      }
+
+      if (this.elements.searchResults) {
+        const clickHandler = (event) => {
+          const button = event.target.closest('[data-track-uri]');
+          if (!button) return;
+          event.preventDefault();
+          const uri = button.getAttribute('data-track-uri');
+          this.playSearchResult(uri);
+        };
+        this.elements.searchResults.addEventListener('click', clickHandler);
+        this.listeners.push({ target: this.elements.searchResults, type: 'click', handler: clickHandler });
+      }
+
+      if (this.elements.devicesList) {
+        const clickHandler = (event) => {
+          const button = event.target.closest('[data-device-id]');
+          if (!button) return;
+          event.preventDefault();
+          const deviceId = button.getAttribute('data-device-id');
+          this.handleDeviceSelection(deviceId, button);
+        };
+        this.elements.devicesList.addEventListener('click', clickHandler);
+        this.listeners.push({ target: this.elements.devicesList, type: 'click', handler: clickHandler });
+      }
     }
 
     subscribeToController() {
@@ -226,6 +302,19 @@
           break;
         case 'toggle':
           this.runControllerAction(button, () => this.controller.togglePlayPause());
+          break;
+        case 'search':
+          if (this.requireAuthenticationForPanel()) {
+            this.togglePanel('search');
+          }
+          break;
+        case 'devices':
+          if (this.requireAuthenticationForPanel()) {
+            this.togglePanel('devices');
+          }
+          break;
+        case 'closePanel':
+          this.closePanel(button?.getAttribute('data-panel') || null);
           break;
         case 'login':
           this.handleLogin(button);
@@ -312,6 +401,7 @@
 
     update(state) {
       if (!this.root || !state) return;
+      this.state = state;
       this.clearError();
       this.toggleAuthenticated(state.isAuthenticated);
       this.root.dataset.hasTrack = state.track ? 'true' : 'false';
@@ -320,15 +410,20 @@
       this.updateStatus(state);
       this.updateTrack(state);
       this.updateArtwork(state);
+      this.updateDevice(state);
       this.updateProgress(state);
       this.updateVolume(state);
       this.updateEmptyState(state);
+      this.updatePanelAvailability(state.isAuthenticated);
       this.setControlsEnabled(state.isAuthenticated && Boolean(state.track));
     }
 
     toggleAuthenticated(isAuthenticated) {
       if (!this.root) return;
       this.root.dataset.authenticated = isAuthenticated ? 'true' : 'false';
+      if (!isAuthenticated) {
+        this.closePanel();
+      }
     }
 
     updateStatus(state) {
@@ -366,16 +461,14 @@
     }
 
     updateArtwork(state) {
-      if (!this.elements.artwork || !this.elements.artworkFallback) return;
+      if (!this.root) return;
       const imageUrl = state.track?.imageUrl || null;
-      if (imageUrl) {
-        this.elements.artwork.style.backgroundImage = `url('${imageUrl}')`;
-        this.elements.artwork.classList.add('has-image');
-        this.elements.artworkFallback.hidden = true;
-      } else {
-        this.elements.artwork.style.backgroundImage = 'none';
-        this.elements.artwork.classList.remove('has-image');
-        this.elements.artworkFallback.hidden = false;
+      if (this.elements.background) {
+        this.elements.background.style.backgroundImage = imageUrl ? `url("${imageUrl}")` : '';
+      }
+      this.root.dataset.hasArtwork = imageUrl ? 'true' : 'false';
+      if (this.elements.artworkFallback) {
+        this.elements.artworkFallback.classList.toggle('is-visible', !imageUrl);
       }
     }
 
@@ -449,12 +542,12 @@
 
     updateEmptyState(state) {
       if (!this.elements.emptyState) return;
-      this.elements.emptyState.hidden = Boolean(state.track);
+      this.elements.emptyState.classList.toggle('is-visible', !state.track);
     }
 
     setControlsEnabled(enabled) {
       if (!this.root) return;
-      const controlButtons = this.root.querySelectorAll('.music-sheet__controls button');
+      const controlButtons = this.root.querySelectorAll('.music-bubble__controls button');
       controlButtons.forEach((button) => {
         button.disabled = !enabled;
       });
@@ -468,6 +561,357 @@
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    updateDevice(state) {
+      if (!this.elements.device) return;
+      if (!state.isAuthenticated) {
+        this.elements.device.textContent = '';
+        return;
+      }
+
+      if (state.deviceName) {
+        this.elements.device.textContent = `Listening on ${state.deviceName}`;
+      } else {
+        this.elements.device.textContent = 'No active Spotify device';
+      }
+    }
+
+    updatePanelAvailability(isAuthenticated) {
+      const disabled = !isAuthenticated;
+      if (this.elements.searchButton) {
+        this.elements.searchButton.disabled = disabled;
+        this.elements.searchButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
+      if (this.elements.devicesButton) {
+        this.elements.devicesButton.disabled = disabled;
+        this.elements.devicesButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
+      if (disabled) {
+        this.closePanel();
+      }
+    }
+
+    requireAuthenticationForPanel() {
+      if (this.state?.isAuthenticated) {
+        return true;
+      }
+      this.setStatus('Connect Spotify to access this feature.');
+      this.clearError();
+      return false;
+    }
+
+    togglePanel(panel) {
+      if (!panel) return;
+      if (this.activePanel === panel) {
+        this.closePanel(panel);
+      } else {
+        this.openPanel(panel);
+      }
+    }
+
+    openPanel(panel) {
+      if (!this.root) return;
+      const panelEl = this.getPanelElement(panel);
+      if (!panelEl) return;
+      if (this.activePanel && this.activePanel !== panel) {
+        this.closePanel(this.activePanel);
+      }
+      this.activePanel = panel;
+      this.root.dataset.panel = panel;
+      panelEl.classList.add('is-open');
+      panelEl.setAttribute('aria-hidden', 'false');
+
+      if (panel === 'search') {
+        this.prepareSearchPanel();
+      } else if (panel === 'devices') {
+        this.prepareDevicesPanel();
+      }
+    }
+
+    closePanel(panel = null) {
+      if (!this.root) {
+        this.activePanel = null;
+        return;
+      }
+      const target = panel || this.activePanel;
+      if (!target) return;
+      const panelEl = this.getPanelElement(target);
+      if (!panelEl) return;
+      panelEl.classList.remove('is-open');
+      panelEl.setAttribute('aria-hidden', 'true');
+      if (target === 'search') {
+        this.pendingSearchToken += 1;
+      }
+      if (!panel || this.activePanel === target) {
+        this.activePanel = null;
+        delete this.root.dataset.panel;
+      }
+    }
+
+    getPanelElement(panel) {
+      if (panel === 'search') return this.elements.searchPanel;
+      if (panel === 'devices') return this.elements.devicesPanel;
+      return null;
+    }
+
+    prepareSearchPanel() {
+      if (!this.elements.searchInput) return;
+      if (!this.elements.searchInput.value) {
+        this.clearSearchResults();
+        this.setSearchMessage('Start typing to search.');
+      }
+      try {
+        this.elements.searchInput.focus({ preventScroll: true });
+      } catch (error) {
+        this.elements.searchInput.focus();
+      }
+    }
+
+    prepareDevicesPanel() {
+      this.setDevicesMessage('Loading devices…');
+      this.renderDeviceList([]);
+      this.loadDevices(true);
+    }
+
+    handleSearchInput(rawQuery) {
+      if (!this.requireAuthenticationForPanel()) return;
+      const query = (rawQuery || '').trim();
+      if (this.searchDebounceTimeout) {
+        clearTimeout(this.searchDebounceTimeout);
+        this.searchDebounceTimeout = null;
+      }
+
+      if (!query) {
+        this.pendingSearchToken += 1;
+        this.clearSearchResults();
+        this.setSearchMessage('Start typing to search.');
+        return;
+      }
+
+      this.setSearchMessage('Searching…');
+      const token = ++this.pendingSearchToken;
+      this.searchDebounceTimeout = setTimeout(async () => {
+        this.searchDebounceTimeout = null;
+        try {
+          const results = await this.controller.search(query);
+          if (this.pendingSearchToken !== token) return;
+          if (!results || !results.length) {
+            this.renderSearchResults([]);
+            this.setSearchMessage('No results found.');
+            return;
+          }
+          this.renderSearchResults(results.slice(0, 10));
+          this.setSearchMessage('Tap a result to start playback.');
+        } catch (error) {
+          if (this.pendingSearchToken !== token) return;
+          console.error('MusicModal search failed', error);
+          this.renderSearchResults([]);
+          this.setSearchMessage('Search failed. Please try again.');
+        }
+      }, 250);
+    }
+
+    clearSearchResults() {
+      if (this.elements.searchResults) {
+        this.elements.searchResults.innerHTML = '';
+      }
+    }
+
+    setSearchMessage(message) {
+      if (!this.elements.searchMessage) return;
+      this.elements.searchMessage.textContent = message || '';
+      this.elements.searchMessage.classList.toggle('is-hidden', !message);
+    }
+
+    renderSearchResults(results) {
+      if (!this.elements.searchResults) return;
+      this.elements.searchResults.innerHTML = '';
+      if (!Array.isArray(results) || results.length === 0) {
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      const currentDeviceId = this.state?.deviceId || null;
+
+      results.forEach((track) => {
+        if (!track) return;
+        const item = document.createElement('div');
+        item.className = 'music-bubble__result-item';
+        if (track.uri) {
+          item.setAttribute('data-track-uri', track.uri);
+        }
+
+        const artwork = document.createElement('div');
+        artwork.className = 'music-bubble__result-art';
+        const imageUrl = track.album?.images?.[0]?.url || track.imageUrl;
+        if (imageUrl) {
+          artwork.style.backgroundImage = `url("${imageUrl}")`;
+        }
+        item.appendChild(artwork);
+
+        const info = document.createElement('div');
+        info.className = 'music-bubble__result-info';
+        const title = document.createElement('div');
+        title.className = 'music-bubble__result-title';
+        title.textContent = track.name || track.title || 'Unknown track';
+        info.appendChild(title);
+        const artist = document.createElement('div');
+        artist.className = 'music-bubble__result-artist';
+        const artistNames = Array.isArray(track.artists)
+          ? track.artists.map((artist) => artist.name || artist).filter(Boolean).join(', ')
+          : (track.artist || '');
+        artist.textContent = artistNames;
+        info.appendChild(artist);
+        item.appendChild(info);
+
+        const playButton = document.createElement('button');
+        playButton.type = 'button';
+        playButton.className = 'music-bubble__result-play';
+        playButton.setAttribute('data-track-uri', track.uri || track.id || '');
+        playButton.textContent = '▶';
+        if (!track.uri) {
+          playButton.disabled = true;
+        }
+        if (currentDeviceId) {
+          playButton.setAttribute('data-device-id', currentDeviceId);
+        }
+        item.appendChild(playButton);
+
+        fragment.appendChild(item);
+      });
+
+      this.elements.searchResults.appendChild(fragment);
+    }
+
+    async playSearchResult(uri) {
+      if (!uri || !this.controller?.playTrackUri) return;
+      try {
+        await this.controller.playTrackUri(uri, { deviceId: this.state?.deviceId || undefined });
+        this.setSearchMessage('Playback starting…');
+        setTimeout(() => this.closePanel('search'), 400);
+      } catch (error) {
+        console.error('MusicModal: failed to start playback', error);
+        this.showError('Unable to start playback for that track.');
+      }
+    }
+
+    loadDevices(force = false) {
+      if (!this.controller || typeof this.controller.refreshDevices !== 'function') return null;
+      if (this.deviceLoadPromise && !force) {
+        return this.deviceLoadPromise;
+      }
+
+      const request = this.controller.refreshDevices()
+        .then((response) => {
+          const devices = this.normalizeDeviceResponse(response);
+          if (!devices.length) {
+            this.renderDeviceList([]);
+            this.setDevicesMessage('No Spotify devices are currently available.');
+          } else {
+            this.renderDeviceList(devices);
+            this.setDevicesMessage('Select a device to control playback.');
+          }
+          return devices;
+        })
+        .catch((error) => {
+          console.error('MusicModal: failed to load devices', error);
+          this.renderDeviceList([]);
+          this.setDevicesMessage('Unable to load devices.');
+          throw error;
+        })
+        .finally(() => {
+          this.deviceLoadPromise = null;
+        });
+
+      this.deviceLoadPromise = request;
+      return request;
+    }
+
+    normalizeDeviceResponse(response) {
+      if (!response) return [];
+      if (Array.isArray(response)) return response;
+      if (Array.isArray(response.devices)) return response.devices;
+      if (Array.isArray(response.devices?.items)) return response.devices.items;
+      if (Array.isArray(response.body)) return response.body;
+      if (Array.isArray(response.data)) return response.data;
+      return [];
+    }
+
+    renderDeviceList(devices) {
+      if (!this.elements.devicesList) return;
+      this.elements.devicesList.innerHTML = '';
+      if (!Array.isArray(devices) || devices.length === 0) {
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      const currentId = this.state?.deviceId || null;
+      const currentName = (this.state?.deviceName || '').toLowerCase();
+
+      devices.forEach((device) => {
+        if (!device || !device.id) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'music-bubble__device-btn';
+        button.setAttribute('data-device-id', device.id);
+
+        const name = document.createElement('span');
+        name.className = 'music-bubble__device-name';
+        name.textContent = device.name || 'Unknown device';
+        button.appendChild(name);
+
+        const meta = document.createElement('span');
+        meta.className = 'music-bubble__device-meta';
+        const type = device.type || device.device_type || '';
+        const isActive = device.is_active || device.isActive || false;
+        const metaParts = [];
+        if (type) metaParts.push(type);
+        if (isActive) metaParts.push('Active');
+        meta.textContent = metaParts.join(' • ');
+        button.appendChild(meta);
+
+        const isCurrent = (currentId && device.id === currentId) || (!currentId && currentName && device.name && device.name.toLowerCase() === currentName);
+        if (isCurrent) {
+          button.classList.add('is-current');
+          button.setAttribute('aria-current', 'true');
+        }
+
+        fragment.appendChild(button);
+      });
+
+      this.elements.devicesList.appendChild(fragment);
+    }
+
+    setDevicesMessage(message) {
+      if (!this.elements.devicesMessage) return;
+      this.elements.devicesMessage.textContent = message || '';
+      this.elements.devicesMessage.classList.toggle('is-hidden', !message);
+    }
+
+    async handleDeviceSelection(deviceId, button) {
+      if (!deviceId || !this.controller?.transferPlayback) return;
+      const cleanup = () => {
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('is-loading');
+        }
+      };
+      if (button) {
+        button.disabled = true;
+        button.classList.add('is-loading');
+      }
+      try {
+        this.setDevicesMessage('Transferring playback…');
+        await this.controller.transferPlayback(deviceId);
+        this.setDevicesMessage('Playback transferred.');
+        setTimeout(() => this.closePanel('devices'), 600);
+      } catch (error) {
+        console.error('MusicModal: failed to transfer playback', error);
+        this.setDevicesMessage('Unable to transfer playback.');
+      } finally {
+        cleanup();
+      }
     }
 
     setStatus(message) {
@@ -500,6 +944,7 @@
       this.isOpen = false;
       this.stopProgressLoop();
       this.detachEvents();
+      this.closePanel();
       this.subscriptions.forEach((unsubscribe) => {
         try {
           unsubscribe?.();
@@ -517,6 +962,11 @@
         clearTimeout(this.volumeAdjustTimeout);
         this.volumeAdjustTimeout = null;
       }
+      if (this.searchDebounceTimeout) {
+        clearTimeout(this.searchDebounceTimeout);
+        this.searchDebounceTimeout = null;
+      }
+      this.deviceLoadPromise = null;
       this.root = null;
       this.elements = {};
     }

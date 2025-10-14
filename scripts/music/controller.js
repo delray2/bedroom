@@ -15,6 +15,7 @@
         progressMs: 0,
         durationMs: 0,
         volumePercent: null,
+        deviceId: null,
         deviceName: null,
         deviceType: null,
         lastUpdated: null
@@ -273,6 +274,7 @@
       const isPlaying = Boolean(data?.is_playing);
       const progressMs = data?.progress_ms ?? 0;
       const durationMs = track?.durationMs ?? 0;
+      const deviceId = data?.device?.id || null;
       const deviceName = data?.device?.name || null;
       const deviceType = data?.device?.type || null;
       const volumePercent = data?.device?.volume_percent ?? null;
@@ -283,6 +285,7 @@
         track,
         progressMs,
         durationMs,
+        deviceId,
         deviceName,
         deviceType,
         volumePercent,
@@ -431,6 +434,21 @@
       return data?.tracks?.items || [];
     }
 
+    async playUris(uris, options = {}) {
+      if (!Array.isArray(uris) || uris.length === 0) return;
+      const payload = { uris: uris.slice(0, 50) };
+      if (options.deviceId) {
+        payload.device_id = options.deviceId;
+      }
+      await this.sendCommand('PUT', '/api/spotify/play', payload);
+      await this.refreshPlaybackState();
+    }
+
+    async playTrackUri(uri, options = {}) {
+      if (!uri) return;
+      await this.playUris([uri], options);
+    }
+
     async openLogin() {
       const urls = this.getAuthUrls();
       if (!urls.login) {
@@ -496,6 +514,7 @@
         progressMs: 0,
         durationMs: 0,
         volumePercent: null,
+        deviceId: null,
         deviceName: null,
         deviceType: null
       };
@@ -506,4 +525,10 @@
   const controller = new MusicController();
   window.musicController = controller;
   window.dispatchEvent(new CustomEvent('music:controller-ready', { detail: controller }));
+
+  if (typeof controller.ensureAuth === 'function') {
+    controller.ensureAuth().catch((error) => {
+      console.warn('MusicController: initial auth check failed', error);
+    });
+  }
 })();
