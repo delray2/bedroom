@@ -3,23 +3,7 @@ class UIManager {
   constructor() {
     this.initializeEventListeners();
     this.initializeStateManager();
-    this.setupMusicStateSubscription();
-  }
-
-  setupMusicStateSubscription() {
-    // Subscribe to music state changes from the unified state manager
-    if (window.deviceStateManager) {
-      this.unsubscribeFromMusicState = window.deviceStateManager.subscribeToMusic((state) => {
-        this.handleMusicStateChange(state);
-      });
-    } else {
-      // Wait for state manager to be ready
-      window.addEventListener('deviceStateManager:ready', () => {
-        this.unsubscribeFromMusicState = window.deviceStateManager.subscribeToMusic((state) => {
-          this.handleMusicStateChange(state);
-        });
-      }, { once: true });
-    }
+    this.initializeMusicController();
   }
 
   initializeEventListeners() {
@@ -46,19 +30,7 @@ class UIManager {
       this.unsubscribeFromState = window.deviceStateManager.subscribe(
         this.handleDeviceStateChange.bind(this)
       );
-      
-      // Subscribe to music state changes
-      this.unsubscribeFromMusicState = window.deviceStateManager.subscribeToMusic(
-        this.handleMusicStateChange.bind(this)
-      );
-      
-      // Get initial music state if available
-      const currentMusicState = window.deviceStateManager.getMusicState();
-      if (currentMusicState.hasTrack) {
-        console.log('🎵 UI Manager: Found existing music state:', currentMusicState);
-        this.handleMusicStateChange(currentMusicState);
-      }
-      
+
       // Initialize visual state system
       if (window.deviceStateManager.initVisualStateSubscriptions) {
         window.deviceStateManager.initVisualStateSubscriptions();
@@ -69,19 +41,7 @@ class UIManager {
         this.unsubscribeFromState = window.deviceStateManager.subscribe(
           this.handleDeviceStateChange.bind(this)
         );
-        
-        // Subscribe to music state changes
-        this.unsubscribeFromMusicState = window.deviceStateManager.subscribeToMusic(
-          this.handleMusicStateChange.bind(this)
-        );
-        
-        // Get initial music state if available
-        const currentMusicState = window.deviceStateManager.getMusicState();
-        if (currentMusicState.hasTrack) {
-          console.log('🎵 UI Manager: Found existing music state:', currentMusicState);
-          this.handleMusicStateChange(currentMusicState);
-        }
-        
+
         if (window.deviceStateManager.initVisualStateSubscriptions) {
           window.deviceStateManager.initVisualStateSubscriptions();
         }
@@ -89,59 +49,57 @@ class UIManager {
     }
   }
 
+  initializeMusicController() {
+    const attach = (controller) => {
+      if (!controller || typeof controller.on !== 'function') return;
+      if (this.unsubscribeFromMusicController) {
+        this.unsubscribeFromMusicController();
+      }
+      this.unsubscribeFromMusicController = controller.on('state', (state) => {
+        this.handleMusicStateChange(state);
+      });
+
+      const currentState = controller.getState ? controller.getState() : null;
+      if (currentState) {
+        this.handleMusicStateChange(currentState);
+      }
+    };
+
+    if (window.musicController) {
+      attach(window.musicController);
+    }
+
+    window.addEventListener('music:controller-ready', (event) => {
+      attach(event.detail);
+    }, { once: true });
+  }
+
   handleMusicStateChange(state) {
-    console.log('🎵 UI Manager received music state change:', state);
-    
-    // Update music side button with album artwork and playing state
+    if (!state) return;
     this.updateMusicSideButton(state);
 
-    // Update music overlay if it exists
-    if (window.musicOverlay) {
+    if (window.musicOverlay && typeof window.musicOverlay.handleMusicStateChange === 'function') {
       window.musicOverlay.handleMusicStateChange(state);
     }
-    
-    // Update music modal background if it's open
-    this.updateMusicModalBackground(state);
   }
 
-  updateMusicModalBackground(state) {
-    // Find the music modal's album artwork background
-    const albumArtworkBg = document.getElementById('albumArtworkBg');
-    if (!albumArtworkBg) return;
-    
-    if (state.isPlaying && state.trackInfo && state.trackInfo.imageUrl) {
-      // Force image reload to ensure it updates when song changes
-      const img = new Image();
-      img.onload = () => {
-        albumArtworkBg.style.backgroundImage = `url(${state.trackInfo.imageUrl})`;
-        console.log('🎵 Updated music modal album artwork background:', state.trackInfo.imageUrl);
-      };
-      img.src = state.trackInfo.imageUrl;
-    } else {
-      // Reset background if no image URL
-      albumArtworkBg.style.backgroundImage = 'none';
-      console.log('🎵 Reset music modal album artwork background');
-    }
-  }
-  
   updateMusicSideButton(state) {
     const musicSideButton = document.querySelector('.side-btn[title="Music"]');
     if (!musicSideButton) return;
-    
-    if (state.isPlaying && state.trackInfo && state.trackInfo.imageUrl) {
-      // Force image reload to ensure it updates when song changes
+
+    const imageUrl = state.track?.imageUrl || null;
+    const isPlaying = Boolean(state.isPlaying);
+
+    if (imageUrl) {
       const img = new Image();
       img.onload = () => {
-        musicSideButton.style.backgroundImage = `url(${state.trackInfo.imageUrl})`;
+        musicSideButton.style.backgroundImage = `url(${imageUrl})`;
         musicSideButton.style.backgroundSize = 'cover';
         musicSideButton.style.backgroundPosition = 'center';
         musicSideButton.style.backgroundRepeat = 'no-repeat';
         musicSideButton.classList.add('has-album-artwork');
-        musicSideButton.classList.add('is-playing');
-        
-        console.log('🎵 Updated music side button with album artwork:', state.trackInfo.imageUrl);
       };
-      img.src = state.trackInfo.imageUrl;
+      img.src = imageUrl;
     } else {
       // Reset to default music emoji
       musicSideButton.style.backgroundImage = `url('assets/emoji/1f3b5.svg')`;
@@ -149,10 +107,9 @@ class UIManager {
       musicSideButton.style.backgroundPosition = 'center';
       musicSideButton.style.backgroundRepeat = 'no-repeat';
       musicSideButton.classList.remove('has-album-artwork');
-      musicSideButton.classList.remove('is-playing');
-      
-      console.log('🎵 Reset music side button to default state');
     }
+
+    musicSideButton.classList.toggle('is-playing', isPlaying);
   }
 
   handleDeviceStateChange(deviceId, attributes) {
