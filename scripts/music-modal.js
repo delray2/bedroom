@@ -2,18 +2,24 @@
   'use strict';
 
   const TEMPLATE = `
-    <div class="music-bubble" id="musicSheet" data-authenticated="false" data-has-track="false" data-playing="false">
+    <div class="music-bubble" id="musicSheet" data-authenticated="false" data-has-track="false" data-playing="false" data-has-artwork="false">
       <div class="music-bubble__background" data-role="background"></div>
       <div class="music-bubble__overlay"></div>
       <div class="music-bubble__surface">
         <header class="music-bubble__header">
-          <div class="music-bubble__status" data-role="status">Checking Spotify…</div>
-          <div class="music-bubble__actions">
-            <button class="music-bubble__icon-btn" data-action="search" aria-label="Search Spotify" disabled>
-              <span>🔍</span>
+          <div class="music-bubble__header-slot music-bubble__header-slot--left">
+            <div class="music-bubble__status" data-role="status">Checking Spotify…</div>
+          </div>
+          <div class="music-bubble__header-slot music-bubble__header-slot--center">
+            <button class="music-bubble__icon-btn music-bubble__icon-btn--search" data-action="search" aria-label="Search Spotify" disabled>
+              <span class="music-bubble__icon">🔍</span>
+              <span class="music-bubble__icon-label">Search</span>
             </button>
-            <button class="music-bubble__icon-btn" data-action="devices" aria-label="Choose device" disabled>
-              <span>📱</span>
+          </div>
+          <div class="music-bubble__header-slot music-bubble__header-slot--right">
+            <button class="music-bubble__icon-btn music-bubble__icon-btn--devices" data-action="devices" aria-label="Choose device" disabled>
+              <span class="music-bubble__icon">📡</span>
+              <span class="music-bubble__icon-label">Devices</span>
             </button>
           </div>
         </header>
@@ -56,26 +62,30 @@
         </div>
       </div>
       <div class="music-bubble__panel music-bubble__panel--search" data-role="searchPanel" aria-hidden="true">
-        <div class="music-bubble__panel-header">
-          <h3>Search Spotify</h3>
-          <button class="music-bubble__icon-btn music-bubble__icon-btn--small" data-action="closePanel" data-panel="search" aria-label="Close search">✕</button>
-        </div>
-        <div class="music-bubble__panel-body">
-          <div class="music-bubble__input">
-            <input type="search" placeholder="Search songs, artists, or albums" autocomplete="off" data-role="searchInput">
+        <div class="music-bubble__panel-inner">
+          <div class="music-bubble__panel-header">
+            <h3>Search Spotify</h3>
+            <button class="music-bubble__icon-btn music-bubble__icon-btn--ghost" data-action="closePanel" data-panel="search" aria-label="Close search">✕</button>
           </div>
-          <div class="music-bubble__panel-message" data-role="searchMessage">Start typing to search.</div>
-          <div class="music-bubble__panel-results" data-role="searchResults"></div>
+          <div class="music-bubble__panel-body">
+            <div class="music-bubble__input">
+              <input type="search" placeholder="Search songs, artists, or albums" autocomplete="off" data-role="searchInput">
+            </div>
+            <div class="music-bubble__panel-message" data-role="searchMessage">Start typing to search.</div>
+            <div class="music-bubble__panel-results" data-role="searchResults"></div>
+          </div>
         </div>
       </div>
       <div class="music-bubble__panel music-bubble__panel--devices" data-role="devicesPanel" aria-hidden="true">
-        <div class="music-bubble__panel-header">
-          <h3>Choose a device</h3>
-          <button class="music-bubble__icon-btn music-bubble__icon-btn--small" data-action="closePanel" data-panel="devices" aria-label="Close devices">✕</button>
-        </div>
-        <div class="music-bubble__panel-body">
-          <div class="music-bubble__panel-message" data-role="devicesMessage">Loading devices…</div>
-          <div class="music-bubble__panel-results" data-role="devicesList"></div>
+        <div class="music-bubble__panel-inner">
+          <div class="music-bubble__panel-header">
+            <h3>Choose a device</h3>
+            <button class="music-bubble__icon-btn music-bubble__icon-btn--ghost" data-action="closePanel" data-panel="devices" aria-label="Close devices">✕</button>
+          </div>
+          <div class="music-bubble__panel-body">
+            <div class="music-bubble__panel-message" data-role="devicesMessage">Loading devices…</div>
+            <div class="music-bubble__panel-results" data-role="devicesList"></div>
+          </div>
         </div>
       </div>
       <div class="music-bubble__error" data-role="error" hidden></div>
@@ -104,6 +114,9 @@
 
     open() {
       if (this.isOpen) {
+        if (this.controller?.setModalVisible) {
+          this.controller.setModalVisible(true);
+        }
         this.syncState();
         return;
       }
@@ -113,6 +126,10 @@
       this.bindEvents();
       this.subscribeToController();
       this.isOpen = true;
+
+      if (this.controller?.setModalVisible) {
+        this.controller.setModalVisible(true);
+      }
 
       this.setStatus('Checking Spotify…');
       this.syncState();
@@ -709,7 +726,7 @@
           this.renderSearchResults([]);
           this.setSearchMessage('Search failed. Please try again.');
         }
-      }, 250);
+      }, 300);
     }
 
     clearSearchResults() {
@@ -856,10 +873,18 @@
         button.className = 'music-bubble__device-btn';
         button.setAttribute('data-device-id', device.id);
 
+        const icon = document.createElement('span');
+        icon.className = 'music-bubble__device-icon';
+        icon.textContent = this.getDeviceIcon(device.type || device.device_type);
+        button.appendChild(icon);
+
+        const info = document.createElement('span');
+        info.className = 'music-bubble__device-info';
+
         const name = document.createElement('span');
         name.className = 'music-bubble__device-name';
         name.textContent = device.name || 'Unknown device';
-        button.appendChild(name);
+        info.appendChild(name);
 
         const meta = document.createElement('span');
         meta.className = 'music-bubble__device-meta';
@@ -869,7 +894,9 @@
         if (type) metaParts.push(type);
         if (isActive) metaParts.push('Active');
         meta.textContent = metaParts.join(' • ');
-        button.appendChild(meta);
+        info.appendChild(meta);
+
+        button.appendChild(info);
 
         const isCurrent = (currentId && device.id === currentId) || (!currentId && currentName && device.name && device.name.toLowerCase() === currentName);
         if (isCurrent) {
@@ -887,6 +914,37 @@
       if (!this.elements.devicesMessage) return;
       this.elements.devicesMessage.textContent = message || '';
       this.elements.devicesMessage.classList.toggle('is-hidden', !message);
+    }
+
+    getDeviceIcon(type) {
+      const normalized = (type || '').toString().toLowerCase();
+      switch (normalized) {
+        case 'computer':
+        case 'desktop':
+        case 'laptop':
+          return '💻';
+        case 'smartphone':
+        case 'tablet':
+        case 'tabletpc':
+        case 'mobile':
+          return '📱';
+        case 'tv':
+        case 'castvideo':
+        case 'cast_tv':
+        case 'avr':
+        case 'stb':
+          return '📺';
+        case 'gameconsole':
+          return '🎮';
+        case 'speaker':
+        case 'audiodongle':
+        case 'audio_dongle':
+        case 'embedded':
+        case 'automobile':
+          return '🔊';
+        default:
+          return '🔊';
+      }
     }
 
     async handleDeviceSelection(deviceId, button) {
@@ -942,6 +1000,9 @@
     teardown() {
       if (!this.isOpen) return;
       this.isOpen = false;
+      if (this.controller?.setModalVisible) {
+        this.controller.setModalVisible(false);
+      }
       this.stopProgressLoop();
       this.detachEvents();
       this.closePanel();

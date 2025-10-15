@@ -30,6 +30,10 @@
       this.pollTimer = null;
       this.tokenRefreshTimer = null;
       this.isPolling = false;
+      this.visibilityContexts = new Map([
+        ['modal', false],
+        ['overlay', false]
+      ]);
 
       this.restoreFromStorage();
       this.attachStateManager();
@@ -106,8 +110,8 @@
     async ensureAuth() {
       const authed = await this.checkAuth();
       if (authed) {
-        this.startPolling();
         this.startTokenRefresh();
+        this.updatePollingState();
       } else {
         this.stopPolling();
         this.stopTokenRefresh();
@@ -160,6 +164,8 @@
         window.dispatchEvent(new CustomEvent('spotify:logout'));
       }
 
+      this.updatePollingState();
+
       if (changed) {
         this.emit('auth', isAuthenticated);
         this.emit('state', this.getState());
@@ -194,6 +200,7 @@
     }
 
     stopPolling() {
+      if (!this.isPolling && !this.pollTimer) return;
       this.isPolling = false;
       if (this.pollTimer) {
         clearInterval(this.pollTimer);
@@ -304,6 +311,7 @@
       }
 
       this.emit('state', this.getState());
+      this.updatePollingState();
     }
 
     mapTrack(item) {
@@ -345,6 +353,7 @@
       };
 
       this.emit('state', this.getState());
+      this.updatePollingState();
     }
 
     async sendCommand(method, endpoint, body = null) {
@@ -447,6 +456,41 @@
     async playTrackUri(uri, options = {}) {
       if (!uri) return;
       await this.playUris([uri], options);
+    }
+
+    setContextActive(context, isActive) {
+      if (!context) return;
+      const normalized = Boolean(isActive);
+      const previous = this.visibilityContexts.get(context);
+      if (previous === normalized) {
+        return;
+      }
+      this.visibilityContexts.set(context, normalized);
+      this.updatePollingState();
+    }
+
+    setModalVisible(isVisible) {
+      this.setContextActive('modal', isVisible);
+    }
+
+    setOverlayActive(isVisible) {
+      this.setContextActive('overlay', isVisible);
+    }
+
+    updatePollingState() {
+      if (!this.state.isAuthenticated) {
+        this.stopPolling();
+        return;
+      }
+
+      const contextActive = Array.from(this.visibilityContexts.values()).some(Boolean);
+      const shouldPoll = contextActive || Boolean(this.state.isPlaying);
+
+      if (shouldPoll) {
+        this.startPolling();
+      } else {
+        this.stopPolling();
+      }
     }
 
     async openLogin() {

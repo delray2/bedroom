@@ -16,6 +16,8 @@
       this.clockTimer = null;
       this.unsubscribe = null;
       this.restoreResetTimer = null;
+      this.currentBackgroundUrl = null;
+      this.backgroundRequestId = 0;
 
       this.render();
       this.bindEvents();
@@ -39,16 +41,20 @@
       container.setAttribute('data-visible', 'false');
       container.innerHTML = `
         <div class="music-overlay__background" data-role="background"></div>
-        <div class="music-overlay__scrim"></div>
-        <div class="music-overlay__content">
-          <div class="music-overlay__clock">
-            <span class="music-overlay__date" data-role="date"></span>
-            <span class="music-overlay__time" data-role="time"></span>
+        <div class="music-overlay__gradient"></div>
+        <div class="music-overlay__layer">
+          <div class="music-overlay__top">
+            <div class="music-overlay__clock">
+              <div class="music-overlay__date" data-role="date"></div>
+              <div class="music-overlay__time" data-role="time"></div>
+            </div>
+            <div class="music-overlay__instruction">Tap to resume</div>
           </div>
-          <div class="music-overlay__track">
-            <div class="music-overlay__title" data-role="title">Music paused</div>
-            <div class="music-overlay__artist" data-role="artist"></div>
-            <div class="music-overlay__instruction">Tap to return</div>
+          <div class="music-overlay__bottom">
+            <div class="music-overlay__track" data-role="track">
+              <div class="music-overlay__track-title" data-role="title">Music paused</div>
+              <div class="music-overlay__track-artist" data-role="artist"></div>
+            </div>
           </div>
         </div>
       `;
@@ -112,12 +118,18 @@
 
       if (!state.track) {
         this.hide();
+        this.activityTimestamp = Date.now();
+        return;
       }
 
       this.updateContent(state);
       if (!state.isPlaying) {
         this.hide();
+        this.activityTimestamp = Date.now();
+        return;
       }
+
+      this.activityTimestamp = Date.now();
     }
 
     updateContent(state) {
@@ -129,11 +141,24 @@
         this.elements.artist.textContent = state.track?.artist || '';
       }
       if (this.elements.background) {
-        const image = state.track?.imageUrl;
+        const image = state.track?.imageUrl || null;
         if (image) {
-          this.elements.background.style.backgroundImage = `url('${image}')`;
-          this.elements.background.classList.add('has-image');
+          if (image === this.currentBackgroundUrl) {
+            this.elements.background.classList.add('has-image');
+            return;
+          }
+          const requestId = ++this.backgroundRequestId;
+          this.preloadImage(image).then((loaded) => {
+            if (!loaded) return;
+            if (requestId !== this.backgroundRequestId) return;
+            if (!this.elements.background) return;
+            this.currentBackgroundUrl = image;
+            this.elements.background.style.backgroundImage = `url('${image}')`;
+            this.elements.background.classList.add('has-image');
+          });
         } else {
+          this.backgroundRequestId += 1;
+          this.currentBackgroundUrl = null;
           this.elements.background.style.backgroundImage = 'none';
           this.elements.background.classList.remove('has-image');
         }
@@ -155,10 +180,35 @@
     updateClock() {
       if (!this.elements.date || !this.elements.time) return;
       const now = new Date();
-      const dateFormatter = new Intl.DateTimeFormat([], { weekday: 'long', month: 'long', day: 'numeric' });
-      const timeFormatter = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
-      this.elements.date.textContent = dateFormatter.format(now);
+      this.elements.date.textContent = this.formatDate(now);
+      const timeFormatter = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', hour12: true });
       this.elements.time.textContent = timeFormatter.format(now);
+    }
+
+    formatDate(date) {
+      const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+      const month = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+      const day = date.getDate();
+      const suffix = this.getOrdinalSuffix(day);
+      const year = date.getFullYear();
+      return `${weekday}, ${month} ${day}${suffix}, ${year}`;
+    }
+
+    getOrdinalSuffix(day) {
+      const remainder = day % 100;
+      if (remainder >= 11 && remainder <= 13) {
+        return 'th';
+      }
+      switch (day % 10) {
+        case 1:
+          return 'st';
+        case 2:
+          return 'nd';
+        case 3:
+          return 'rd';
+        default:
+          return 'th';
+      }
     }
 
     startVisibilityCheck() {
@@ -189,12 +239,23 @@
       if (!this.overlay || this.visible) return;
       this.overlay.setAttribute('data-visible', 'true');
       this.visible = true;
+      if (this.controller?.setOverlayActive) {
+        this.controller.setOverlayActive(true);
+      }
     }
 
     hide() {
-      if (!this.overlay || !this.visible) return;
+      if (!this.overlay || !this.visible) {
+        if (this.controller?.setOverlayActive) {
+          this.controller.setOverlayActive(false);
+        }
+        return;
+      }
       this.overlay.setAttribute('data-visible', 'false');
       this.visible = false;
+      if (this.controller?.setOverlayActive) {
+        this.controller.setOverlayActive(false);
+      }
     }
 
     recordActivity() {
@@ -204,12 +265,28 @@
       }
     }
 
+    preloadImage(url) {
+      return new Promise((resolve) => {
+        if (!url) {
+          resolve(false);
+          return;
+        }
+        const image = new Image();
+        image.onload = () => resolve(true);
+        image.onerror = () => resolve(false);
+        image.src = url;
+      });
+    }
+
     destroy() {
       this.stopVisibilityCheck();
       this.stopClock();
       if (this.unsubscribe) {
         this.unsubscribe();
         this.unsubscribe = null;
+      }
+      if (this.controller?.setOverlayActive) {
+        this.controller.setOverlayActive(false);
       }
       if (this.activityListener) {
         ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach((event) => {
