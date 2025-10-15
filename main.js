@@ -39,6 +39,7 @@ process.env.DETECTED_HOST_IP = currentIP;
 
 // Spotify configuration
 let spotifyAccessToken = '';
+let spotifyRefreshToken = ''; // Add missing refresh token variable
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID || '6eba173437884404862a5bdd132ad7c3';
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET || 'acf11af6751c4c55a48ed93fb4f7b492';
 // Dynamic redirect URI based on detected IP (must be HTTPS for Spotify)
@@ -225,7 +226,12 @@ backend.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: Date.now(),
-    websocketClients: wss.clients.size
+    websocketClients: wss.clients.size,
+    spotify: {
+      authenticated: !!spotifyAccessToken,
+      hasRefreshToken: !!spotifyRefreshToken,
+      redirectUri: spotifyRedirectUri
+    }
   });
 });
 
@@ -245,6 +251,10 @@ function generateRandomString(length) {
 backend.get('/auth/login', (req, res) => {
   const state = generateRandomString(16);
   
+  console.log('🎵 Starting Spotify authentication flow');
+  console.log('🎵 Redirect URI:', spotifyRedirectUri);
+  console.log('🎵 Client ID:', spotifyClientId);
+  
   const authQueryParameters = new URLSearchParams({
     response_type: 'code',
     client_id: spotifyClientId,
@@ -259,8 +269,24 @@ backend.get('/auth/login', (req, res) => {
 // Spotify OAuth callback
 backend.get('/oauth/callback', async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state;
+  const error = req.query.error;
   
-  console.log('Spotify callback received - Code:', code);
+  console.log('Spotify callback received - Code:', code ? 'Present' : 'Missing');
+  console.log('Spotify callback received - State:', state);
+  console.log('Spotify callback received - Error:', error);
+  
+  // Handle OAuth errors
+  if (error) {
+    console.error('Spotify OAuth error:', error);
+    return res.status(400).send(`Spotify OAuth error: ${error}`);
+  }
+  
+  // Check if authorization code is present
+  if (!code) {
+    console.error('No authorization code received from Spotify');
+    return res.status(400).send('No authorization code received from Spotify');
+  }
   
   try {
     const authOptions = {
@@ -278,13 +304,22 @@ backend.get('/oauth/callback', async (req, res) => {
     };
     
     console.log('Making auth request to Spotify...');
+    console.log('Request details:', {
+      url: authOptions.url,
+      method: authOptions.method,
+      redirect_uri: spotifyRedirectUri,
+      code_length: code ? code.length : 0
+    });
+    
     const response = await axios(authOptions);
     
     console.log('Auth request successful:', { status: response.status });
     
     if (response.status === 200) {
       spotifyAccessToken = response.data.access_token;
+      spotifyRefreshToken = response.data.refresh_token || spotifyRefreshToken; // Store refresh token
       console.log('Access token received successfully');
+      console.log('Refresh token stored:', spotifyRefreshToken ? 'Yes' : 'No');
       res.send(`
         <html>
           <head><title>Spotify Authentication</title></head>
@@ -338,6 +373,27 @@ backend.get('/oauth/callback', async (req, res) => {
       data: error.response?.data
     });
     
+    // Handle specific Spotify API errors
+    if (error.response?.data?.error === 'invalid_grant') {
+      console.error('Invalid grant error - this usually means:');
+      console.error('1. Authorization code has expired (codes expire in 10 minutes)');
+      console.error('2. Authorization code has already been used');
+      console.error('3. Redirect URI mismatch');
+      console.error('4. Client credentials are incorrect');
+      
+      return res.status(400).send(`
+        <html>
+          <head><title>Spotify Authentication Error</title></head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2>❌ Authentication Error</h2>
+            <p>The authorization code has expired or is invalid.</p>
+            <p>Please try logging in again.</p>
+            <button onclick="window.close()">Close</button>
+          </body>
+        </html>
+      `);
+    }
+    
     const errorMessage = error.response?.data?.error_description || 
                         error.response?.data?.error || 
                         error.message || 
@@ -349,7 +405,18 @@ backend.get('/oauth/callback', async (req, res) => {
 
 // Get current access token
 backend.get('/auth/token', (req, res) => {
+  if (!spotifyAccessToken) {
+    return res.status(401).json({ error: 'Not authenticated with Spotify' });
+  }
   res.json({ access_token: spotifyAccessToken });
+});
+
+// Logout endpoint to clear tokens
+backend.post('/auth/logout', (req, res) => {
+  console.log('Spotify logout requested');
+  spotifyAccessToken = '';
+  spotifyRefreshToken = '';
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // Get current playback state
@@ -575,7 +642,7 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
       new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: spotifyRefreshToken,
-        client_id: process.env.SPOTIFY_CLIENT_ID
+        client_id: spotifyClientId
       }), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -598,7 +665,23 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
 
   } catch (error) {
     console.error('Spotify token refresh error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
+    console.error('Refresh token error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
+    // Handle specific refresh token errors
+    if (error.response?.data?.error === 'invalid_grant') {
+      console.error('Refresh token is invalid or expired - user needs to re-authenticate');
+      spotifyRefreshToken = ''; // Clear invalid refresh token
+      spotifyAccessToken = ''; // Clear access token
+    }
+    
+    res.status(error.response?.status || 500).json({ 
+      error: error.message,
+      details: error.response?.data?.error_description || 'Token refresh failed'
+    });
   }
 });
 

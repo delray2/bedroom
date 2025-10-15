@@ -492,11 +492,19 @@
   font-size: 1rem;
   outline: none;
   transition: border-color 0.2s ease, background 0.2s ease;
+  /* Touch-friendly styling for Raspberry Pi OSK */
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  min-height: 44px; /* Minimum touch target size */
 }
 
 .music-bubble__input input:focus {
   border-color: rgba(126, 199, 255, 0.85);
   background: rgba(13, 16, 32, 0.85);
+  /* Ensure OSK triggers on focus */
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .music-bubble__panel-message {
@@ -663,6 +671,9 @@
   z-index: 1400;
   overflow: hidden;
   background: #050814;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .music-overlay[data-visible="true"] {
@@ -679,6 +690,7 @@
   transform: scale(1.08);
   transition: transform 0.6s ease, opacity 0.6s ease;
   opacity: 0.75;
+  border-radius: 0;
 }
 
 .music-overlay__background.has-image {
@@ -689,6 +701,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(80% 80% at 18% 22%, rgba(7, 9, 20, 0.35) 0%, rgba(4, 5, 14, 0.75) 42%, rgba(2, 3, 10, 0.92) 100%);
+  border-radius: 0;
 }
 
 .music-overlay__layer {
@@ -700,6 +713,7 @@
   height: 100%;
   padding: 4rem 5rem;
   color: #f2f6ff;
+  border-radius: 0;
 }
 
 .music-overlay__top {

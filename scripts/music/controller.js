@@ -263,7 +263,8 @@
         }
 
         if (!response.ok) {
-          throw new Error(`Playback state error: ${response.status}`);
+          const errorText = await response.text().catch(() => response.statusText);
+          throw new Error(`Playback state error: Request failed with status code ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
@@ -550,6 +551,15 @@
     }
 
     async logout() {
+      const base = this.getBaseUrl();
+      if (base) {
+        try {
+          await fetch(`${base}/auth/logout`, { method: 'POST' });
+        } catch (error) {
+          console.warn('MusicController: logout request failed', error);
+        }
+      }
+      
       this.setAuthenticated(false);
       this.state = {
         ...this.state,

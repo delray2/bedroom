@@ -134,29 +134,52 @@
 
     updateContent(state) {
       if (!this.overlay) return;
+      
+      // Update track information
       if (this.elements.title) {
         this.elements.title.textContent = state.track?.title || 'Music paused';
       }
       if (this.elements.artist) {
         this.elements.artist.textContent = state.track?.artist || '';
       }
+      
+      // Update background image
       if (this.elements.background) {
         const image = state.track?.imageUrl || null;
+        console.log('🎵 Music Overlay: Updating background image:', image);
+        
         if (image) {
           if (image === this.currentBackgroundUrl) {
+            // Ensure the background image is set even if URL is the same
+            console.log('🎵 Music Overlay: Same image URL, ensuring background is set');
+            this.elements.background.style.backgroundImage = `url('${image}')`;
             this.elements.background.classList.add('has-image');
             return;
           }
+          
+          console.log('🎵 Music Overlay: New image URL, preloading:', image);
           const requestId = ++this.backgroundRequestId;
           this.preloadImage(image).then((loaded) => {
-            if (!loaded) return;
-            if (requestId !== this.backgroundRequestId) return;
-            if (!this.elements.background) return;
+            if (!loaded) {
+              console.log('🎵 Music Overlay: Failed to load image:', image);
+              return;
+            }
+            if (requestId !== this.backgroundRequestId) {
+              console.log('🎵 Music Overlay: Request ID mismatch, ignoring');
+              return;
+            }
+            if (!this.elements.background) {
+              console.log('🎵 Music Overlay: Background element not found');
+              return;
+            }
+            
+            console.log('🎵 Music Overlay: Successfully loaded and setting background:', image);
             this.currentBackgroundUrl = image;
             this.elements.background.style.backgroundImage = `url('${image}')`;
             this.elements.background.classList.add('has-image');
           });
         } else {
+          console.log('🎵 Music Overlay: No image URL, clearing background');
           this.backgroundRequestId += 1;
           this.currentBackgroundUrl = null;
           this.elements.background.style.backgroundImage = 'none';
