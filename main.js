@@ -323,7 +323,7 @@ backend.get('/oauth/callback', async (req, res) => {
       res.send(`
         <html>
           <head><title>Spotify Authentication</title></head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <body style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px;">
             <h2>✅ Successfully authenticated with Spotify!</h2>
             <p>Redirecting back to dashboard...</p>
             <div id="countdown">3</div>
@@ -384,7 +384,7 @@ backend.get('/oauth/callback', async (req, res) => {
       return res.status(400).send(`
         <html>
           <head><title>Spotify Authentication Error</title></head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <body style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px;">
             <h2>❌ Authentication Error</h2>
             <p>The authorization code has expired or is invalid.</p>
             <p>Please try logging in again.</p>
@@ -811,9 +811,16 @@ function createWindow() {
       experimentalFeatures: true, // Enable experimental features for DRM
     },
     // Touchscreen optimizations
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     skipTaskbar: true,
     autoHideMenuBar: true,
+    // Additional settings for better touch support
+    focusable: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    closable: false,
   });
   
   // Ignore SSL certificate errors for local development
@@ -825,7 +832,7 @@ function createWindow() {
   win.loadFile('index.html');
   
   // Enable remote debugging
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools(); // Disabled - no auto-open dev tools
   
   // Add keyboard shortcuts for debugging
   win.webContents.on('before-input-event', (event, input) => {
@@ -863,11 +870,18 @@ function createWindow() {
   });
 }
 
-// Enable DRM support
+// Enable DRM support and touch compatibility
 app.commandLine.appendSwitch('--enable-widevine-cdm');
 app.commandLine.appendSwitch('--enable-media-stream');
 app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
 app.commandLine.appendSwitch('--disable-features', 'VizDisplayCompositor');
+// Additional switches for better touch support
+app.commandLine.appendSwitch('--enable-touch-events');
+app.commandLine.appendSwitch('--enable-gesture-events');
+app.commandLine.appendSwitch('--enable-pointer-lock');
+app.commandLine.appendSwitch('--disable-background-timer-throttling');
+app.commandLine.appendSwitch('--disable-renderer-backgrounding');
+app.commandLine.appendSwitch('--disable-backgrounding-occluded-windows');
 
 app.whenReady().then(createWindow);
 

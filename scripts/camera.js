@@ -2,6 +2,7 @@
 let cameraModalTimeout = null;
 let videoStream = null;
 let currentVideoElement = null;
+const CAMERA_MODAL_TIMEOUT_MS = 30000; // 30 seconds
 
 async function showCameraModal() {
   console.log('Opening camera modal...');
@@ -16,9 +17,8 @@ async function showCameraModal() {
   // If camera modal is already open, just reset the timeout (don't close/reopen)
   if (activeModal === 'camera' && bg.classList.contains('visible')) {
     console.log('Camera modal already open - resetting timeout (doorbell re-trigger)');
-    clearModalTimeout();
-    startModalTimeout();
-    startActivityMonitoring();
+    clearCameraModalTimeout();
+    startCameraModalTimeout();
     return; // Don't reinitialize the stream
   }
   
@@ -29,9 +29,8 @@ async function showCameraModal() {
   console.log('Camera modal background displayed');
   activeModal = 'camera';
   
-  // Start the unified modal timeout system
-  startModalTimeout();
-  startActivityMonitoring();
+  // Start camera-specific timeout (30 seconds)
+  startCameraModalTimeout();
   
   // Disable websocket listening during camera modal timeout
   // (but allow Reolink messages to still interrupt)
@@ -100,18 +99,28 @@ async function showCameraModal() {
   // No need for separate camera timeout
 }
 
+function startCameraModalTimeout() {
+  clearCameraModalTimeout();
+  cameraModalTimeout = setTimeout(() => {
+    console.log('Camera modal timeout reached (30 seconds), closing');
+    hideCameraModal();
+  }, CAMERA_MODAL_TIMEOUT_MS);
+}
+
+function clearCameraModalTimeout() {
+  if (cameraModalTimeout) {
+    clearTimeout(cameraModalTimeout);
+    cameraModalTimeout = null;
+  }
+}
+
 function hideCameraModal() {
   const bg = document.getElementById('cameraModalBg');
   const modal = document.getElementById('cameraModal');
   
   bg.classList.remove('visible');
-  clearTimeout(cameraModalTimeout);
-  cameraModalTimeout = null;
+  clearCameraModalTimeout();
   activeModal = null;
-  
-  // Clear the unified modal timeout system
-  clearModalTimeout();
-  stopActivityMonitoring();
   
   // Re-enable websocket listening when camera modal closes
   enableWebSocketListening();

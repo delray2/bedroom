@@ -245,13 +245,12 @@ function connectWebSocket() {
     try {
       const raw = typeof event.data === 'string' ? event.data : '';
 
-      // Handle Reolink camera notifications - ALWAYS interrupt any modal except camera modal
+      // Handle Reolink camera notifications - show camera modal over music overlay
       if (raw && raw.toLowerCase().includes('reolink')) {
-        console.log('Reolink message received, checking modal state...');
+        console.log('Reolink message received, showing camera modal...');
         if (window.activeModal === 'camera') return;
-        if (window.activeModal && window.activeModal !== 'camera') {
-          if (typeof window.closeActiveModal === 'function') window.closeActiveModal();
-        }
+        
+        // Don't close music overlay - camera modal will show over it
         if (typeof window.showCameraModal === 'function') window.showCameraModal();
         return;
       }
@@ -456,8 +455,55 @@ function requestInitialStateRefresh() {
   });
 }
 
+// Send backend notification with correct IP
+async function sendBackendNotification(data) {
+  try {
+    const url = window.ipDetection?.getNotificationURL() || window.CONFIG.BACKEND.notifyUrl();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend notification failed: ${response.statusText}`);
+    }
+    
+    console.log('✅ Backend notification sent successfully');
+    return true;
+  } catch (error) {
+    console.warn('Backend notification failed (backend may not be running):', error.message);
+    return false;
+  }
+}
+
+// Initialize WebSocket connection after IP detection
+async function initializeWebSocket() {
+  // Wait for IP detection to complete
+  if (window.ipDetection) {
+    await window.ipDetection.waitForDetection();
+  }
+  
+  // Connect WebSocket with correct IP
+  connectWebSocket();
+  
+  // Listen for IP changes and reconnect
+  if (window.ipDetection) {
+    window.ipDetection.addListener((changeData) => {
+      if (changeData.changed) {
+        console.log('🔄 IP changed, reconnecting WebSocket...');
+        setTimeout(() => {
+          connectWebSocket();
+        }, 1000); // Small delay to ensure new IP is ready
+      }
+    });
+  }
+}
+
 // Initialize WebSocket connection
-connectWebSocket();
+initializeWebSocket();
 
 // Performance monitoring
 if ('performance' in window) {

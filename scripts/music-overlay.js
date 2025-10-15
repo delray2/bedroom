@@ -113,8 +113,15 @@
     }
 
     handleMusicState(state) {
-      this.state = state;
       if (!state) return;
+
+      // Check if state has actually changed to avoid redundant updates
+      const stateChanged = this.hasStateChanged(state);
+      if (!stateChanged) {
+        return;
+      }
+
+      this.state = state;
 
       if (!state.track) {
         this.hide();
@@ -132,6 +139,30 @@
       this.activityTimestamp = Date.now();
     }
 
+    hasStateChanged(newState) {
+      if (!this.state) return true;
+      
+      // Compare key properties that affect the overlay
+      const oldTrack = this.state.track;
+      const newTrack = newState.track;
+      
+      // Check if track changed
+      if (!oldTrack && !newTrack) return false;
+      if (!oldTrack || !newTrack) return true;
+      
+      const trackChanged = (
+        oldTrack.title !== newTrack.title ||
+        oldTrack.artist !== newTrack.artist ||
+        oldTrack.imageUrl !== newTrack.imageUrl ||
+        oldTrack.id !== newTrack.id
+      );
+      
+      // Check if playing state changed
+      const playingChanged = this.state.isPlaying !== newState.isPlaying;
+      
+      return trackChanged || playingChanged;
+    }
+
     updateContent(state) {
       if (!this.overlay) return;
       
@@ -146,14 +177,10 @@
       // Update background image
       if (this.elements.background) {
         const image = state.track?.imageUrl || null;
-        console.log('🎵 Music Overlay: Updating background image:', image);
         
         if (image) {
           if (image === this.currentBackgroundUrl) {
-            // Ensure the background image is set even if URL is the same
-            console.log('🎵 Music Overlay: Same image URL, ensuring background is set');
-            this.elements.background.style.backgroundImage = `url('${image}')`;
-            this.elements.background.classList.add('has-image');
+            // Same image URL, no need to update
             return;
           }
           
@@ -178,7 +205,8 @@
             this.elements.background.style.backgroundImage = `url('${image}')`;
             this.elements.background.classList.add('has-image');
           });
-        } else {
+        } else if (this.currentBackgroundUrl) {
+          // Only clear if we had an image before
           console.log('🎵 Music Overlay: No image URL, clearing background');
           this.backgroundRequestId += 1;
           this.currentBackgroundUrl = null;
@@ -283,6 +311,7 @@
 
     recordActivity() {
       this.activityTimestamp = Date.now();
+      // Always hide music overlay on user activity, regardless of camera modal state
       if (this.visible) {
         this.hide();
       }

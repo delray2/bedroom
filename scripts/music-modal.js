@@ -69,7 +69,7 @@
           </div>
           <div class="music-bubble__panel-body">
             <div class="music-bubble__input">
-              <input type="search" placeholder="Search songs, artists, or albums" autocomplete="off" data-role="searchInput" inputmode="search" x-webkit-speech>
+              <input type="search" placeholder="Search songs, artists, or albums" autocomplete="off" data-role="searchInput" inputmode="search" x-webkit-speech readonly>
             </div>
             <div class="music-bubble__panel-message" data-role="searchMessage">Start typing to search.</div>
             <div class="music-bubble__panel-results" data-role="searchResults"></div>
@@ -314,13 +314,11 @@
         };
         
         const focusHandler = (event) => {
-          // Trigger OSK on Raspberry Pi
-          this.triggerOnScreenKeyboard(event.target);
+          // Focus handler for input elements
         };
         
         const clickHandler = (event) => {
-          // Also trigger OSK on click for better compatibility
-          this.triggerOnScreenKeyboard(event.target);
+          // Click handler for input elements
         };
         
         this.elements.searchInput.addEventListener('input', inputHandler);
@@ -721,6 +719,10 @@
       panelEl.setAttribute('aria-hidden', 'true');
       if (target === 'search') {
         this.pendingSearchToken += 1;
+        // Re-add readonly attribute to prevent accidental input
+        if (this.elements.searchInput) {
+          this.elements.searchInput.setAttribute('readonly', 'readonly');
+        }
       }
       if (!panel || this.activePanel === target) {
         this.activePanel = null;
@@ -741,18 +743,14 @@
         this.setSearchMessage('Start typing to search.');
       }
       
-      // Focus the input and trigger OSK
+      // Remove readonly attribute to allow input
+      this.elements.searchInput.removeAttribute('readonly');
+      
+      // Focus the input
       try {
         this.elements.searchInput.focus({ preventScroll: true });
-        // Trigger OSK after a short delay to ensure focus is complete
-        setTimeout(() => {
-          this.triggerOnScreenKeyboard(this.elements.searchInput);
-        }, 100);
       } catch (error) {
         this.elements.searchInput.focus();
-        setTimeout(() => {
-          this.triggerOnScreenKeyboard(this.elements.searchInput);
-        }, 100);
       }
     }
 
@@ -1061,50 +1059,13 @@
       this.elements.error.textContent = '';
     }
 
-    triggerOnScreenKeyboard(inputElement) {
-      if (!inputElement) return;
-      
-      console.log('🎹 Attempting to trigger on-screen keyboard for:', inputElement);
-      
-      try {
-        // Method 1: Focus and click to trigger OSK
-        inputElement.focus();
-        inputElement.click();
-        
-        // Method 2: Dispatch focus events
-        const focusEvent = new Event('focus', { bubbles: true });
-        inputElement.dispatchEvent(focusEvent);
-        
-        // Method 3: Dispatch input event to trigger OSK
-        const inputEvent = new Event('input', { bubbles: true });
-        inputElement.dispatchEvent(inputEvent);
-        
-        // Method 4: Try to trigger virtual keyboard via touch events
-        const touchStartEvent = new TouchEvent('touchstart', { bubbles: true });
-        const touchEndEvent = new TouchEvent('touchend', { bubbles: true });
-        
-        if (typeof TouchEvent !== 'undefined') {
-          inputElement.dispatchEvent(touchStartEvent);
-          inputElement.dispatchEvent(touchEndEvent);
-        }
-        
-        // Method 5: Set selection to ensure cursor is visible
-        if (inputElement.setSelectionRange) {
-          inputElement.setSelectionRange(0, inputElement.value.length);
-        }
-        
-        console.log('🎹 OSK trigger methods executed');
-        
-      } catch (error) {
-        console.warn('🎹 OSK trigger failed:', error);
-      }
-    }
 
     detachEvents() {
       this.listeners.forEach(({ target, type, handler }) => {
         target.removeEventListener(type, handler);
       });
       this.listeners = [];
+      
     }
 
     close() {

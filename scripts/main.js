@@ -337,7 +337,9 @@ async function initializeDashboard() {
 // Notify backend on load (optional)
 window.addEventListener('DOMContentLoaded', function() {
   try {
-    fetch(window.CONFIG.BACKEND.notifyUrl(), {
+    // Use IP detection service for correct backend URL
+    const backendUrl = window.ipDetection?.getNotificationURL() || window.CONFIG.BACKEND.notifyUrl();
+    fetch(backendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event: 'dashboard_loaded', timestamp: Date.now() })

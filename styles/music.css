@@ -492,7 +492,7 @@
   font-size: 1rem;
   outline: none;
   transition: border-color 0.2s ease, background 0.2s ease;
-  /* Touch-friendly styling for Raspberry Pi OSK */
+  /* Touch-friendly styling for Raspberry Pi */
   -webkit-appearance: none;
   appearance: none;
   touch-action: manipulation;
@@ -502,7 +502,7 @@
 .music-bubble__input input:focus {
   border-color: rgba(126, 199, 255, 0.85);
   background: rgba(13, 16, 32, 0.85);
-  /* Ensure OSK triggers on focus */
+  /* Ensure proper focus behavior */
   -webkit-user-select: text;
   user-select: text;
 }
@@ -711,7 +711,7 @@
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  padding: 4rem 5rem;
+  padding: 4rem 5rem 2rem 5rem; /* Reduced bottom padding */
   color: #f2f6ff;
   border-radius: 0;
 }
@@ -744,11 +744,26 @@
 }
 
 .music-overlay__instruction {
-  font-size: 1rem;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 300;
+  font-size: 3rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  align-self: flex-start;
+  margin: 0;
+  padding: 0 0 0 140px;
+  display: inline;
+  text-align: right;
+  align-self: flex-end;
+  color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(to right, #222 0%, #fff 50%, #222 100%);
+  background-size: 125px 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: music-overlay__instruction 3s ease-in-out infinite;
   opacity: 0.7;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-color: #222;
 }
 
 .music-overlay__bottom {
@@ -775,7 +790,7 @@
 
 @media (max-width: 768px) {
   .music-overlay__layer {
-    padding: 2.5rem;
+    padding: 2.5rem 2.5rem 1.5rem 2.5rem; /* Reduced bottom padding for mobile */
   }
 
   .music-overlay__top {
@@ -858,4 +873,11 @@
   .music-bubble__volume input[type="range"] {
     width: 160px;
   }
+}
+
+/* Keyframes — left → right, then pause before restarting */
+@keyframes music-overlay__instruction {
+  0%   { background-position: 0 0; }
+  60%  { background-position: 100% 0; } /* move right */
+  100% { background-position: 100% 0; } /* hold/pause */
 }

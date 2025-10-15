@@ -95,6 +95,10 @@
     }
 
     getAuthUrls() {
+      // Use IP detection service for correct URLs
+      if (window.ipDetection) {
+        return window.ipDetection.getAuthURLs();
+      }
       return window.CONFIG?.BACKEND?.getAuthUrls?.() || {};
     }
 
@@ -580,9 +584,19 @@
   window.musicController = controller;
   window.dispatchEvent(new CustomEvent('music:controller-ready', { detail: controller }));
 
-  if (typeof controller.ensureAuth === 'function') {
-    controller.ensureAuth().catch((error) => {
-      console.warn('MusicController: initial auth check failed', error);
-    });
+  // Wait for IP detection before attempting authentication
+  async function initializeMusicController() {
+    if (window.ipDetection) {
+      await window.ipDetection.waitForDetection();
+    }
+    
+    if (typeof controller.ensureAuth === 'function') {
+      controller.ensureAuth().catch((error) => {
+        console.warn('MusicController: initial auth check failed', error);
+      });
+    }
   }
+  
+  // Initialize after a short delay to ensure IP detection is ready
+  setTimeout(initializeMusicController, 1000);
 })();
