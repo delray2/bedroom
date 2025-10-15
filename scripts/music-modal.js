@@ -102,7 +102,6 @@
       this.listeners = [];
       this.progressFrame = null;
       this.isOpen = false;
-      this.originalCloseHandler = null;
       this.isAdjustingVolume = false;
       this.volumeAdjustTimeout = null;
       this.volumeDebounce = null;
@@ -114,13 +113,12 @@
 
     open() {
       if (this.isOpen) {
-        if (this.controller?.setModalVisible) {
-          this.controller.setModalVisible(true);
-        }
-        this.syncState();
+        // Just show the modal if it's already open but hidden
+        this.showModal();
         return;
       }
 
+      // First time opening - render and initialize
       this.renderModal();
       this.cacheElements();
       this.bindEvents();
@@ -150,45 +148,63 @@
     }
 
     renderModal() {
-      if (window.uiManager && typeof window.uiManager.showModal === 'function') {
-        window.uiManager.showModal(TEMPLATE, {
-          triggerSelector: '.side-btn[title="Music"]',
-          modalType: 'music'
-        });
-      } else if (typeof window.showModal === 'function') {
-        window.showModal(TEMPLATE);
-      } else {
-        console.warn('MusicModal: no modal renderer available');
-        return;
+      // Create the modal content directly in the modal body
+      const modalBody = document.getElementById('modalBody');
+      if (!modalBody) {
+        throw new Error('Modal body not found');
       }
-
+      
+      modalBody.innerHTML = TEMPLATE;
       this.root = document.getElementById('musicSheet');
       if (!this.root) {
         throw new Error('Music modal root element not found');
       }
 
-      this.overrideCloseHandler();
+      // Show the modal using the global modal system
+      this.showModal();
     }
 
-    overrideCloseHandler() {
-      this.originalCloseHandler = window.closeActiveModal;
-      window.closeActiveModal = (...args) => {
-        try {
-          this.teardown();
-        } finally {
-          if (typeof this.originalCloseHandler === 'function') {
-            return this.originalCloseHandler.apply(window, args);
-          }
-        }
-      };
-    }
+    showModal() {
+      const modalBg = document.getElementById('modalBg');
+      const modalContent = document.getElementById('modalContent');
+      
+      if (!modalBg || !modalContent) {
+        throw new Error('Modal elements not found');
+      }
 
-    restoreCloseHandler() {
-      if (this.originalCloseHandler) {
-        window.closeActiveModal = this.originalCloseHandler;
-        this.originalCloseHandler = null;
+      // Show the modal with animation
+      modalBg.style.display = 'flex';
+      modalBg.classList.add('visible');
+      modalContent.style.transform = 'scale(1) translate(0px)';
+      modalContent.style.opacity = '1';
+      
+      if (this.controller?.setModalVisible) {
+        this.controller.setModalVisible(true);
       }
     }
+
+    hideModal() {
+      const modalBg = document.getElementById('modalBg');
+      const modalContent = document.getElementById('modalContent');
+      
+      if (!modalBg || !modalContent) {
+        return;
+      }
+
+      // Hide the modal with animation
+      modalContent.style.transform = 'scale(0.7) translate(0px)';
+      modalContent.style.opacity = '0';
+      modalBg.classList.remove('visible');
+      
+      setTimeout(() => {
+        modalBg.style.display = 'none';
+      }, 350);
+      
+      if (this.controller?.setModalVisible) {
+        this.controller.setModalVisible(false);
+      }
+    }
+
 
     cacheElements() {
       if (!this.root) return;
@@ -223,6 +239,36 @@
 
     bindEvents() {
       if (!this.root) return;
+      
+      // Add close button handler
+      const closeBtn = document.getElementById('closeModal');
+      if (closeBtn) {
+        const closeHandler = () => this.close();
+        closeBtn.addEventListener('click', closeHandler);
+        this.listeners.push({ target: closeBtn, type: 'click', handler: closeHandler });
+      }
+      
+      // Add background click handler
+      const modalBg = document.getElementById('modalBg');
+      if (modalBg) {
+        const bgHandler = (e) => {
+          if (e.target === modalBg) {
+            this.close();
+          }
+        };
+        modalBg.addEventListener('click', bgHandler);
+        this.listeners.push({ target: modalBg, type: 'click', handler: bgHandler });
+      }
+      
+      // Add escape key handler
+      const escapeHandler = (e) => {
+        if (e.key === 'Escape' && this.isOpen) {
+          this.close();
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+      this.listeners.push({ target: document, type: 'keydown', handler: escapeHandler });
+      
       const actions = this.root.querySelectorAll('[data-action]');
       actions.forEach((btn) => {
         const handler = (event) => {
@@ -997,39 +1043,11 @@
       this.listeners = [];
     }
 
-    teardown() {
+    close() {
       if (!this.isOpen) return;
       this.isOpen = false;
-      if (this.controller?.setModalVisible) {
-        this.controller.setModalVisible(false);
-      }
-      this.stopProgressLoop();
-      this.detachEvents();
+      this.hideModal();
       this.closePanel();
-      this.subscriptions.forEach((unsubscribe) => {
-        try {
-          unsubscribe?.();
-        } catch (error) {
-          console.warn('MusicModal: error during unsubscribe', error);
-        }
-      });
-      this.subscriptions = [];
-      this.restoreCloseHandler();
-      if (this.volumeDebounce) {
-        clearTimeout(this.volumeDebounce);
-        this.volumeDebounce = null;
-      }
-      if (this.volumeAdjustTimeout) {
-        clearTimeout(this.volumeAdjustTimeout);
-        this.volumeAdjustTimeout = null;
-      }
-      if (this.searchDebounceTimeout) {
-        clearTimeout(this.searchDebounceTimeout);
-        this.searchDebounceTimeout = null;
-      }
-      this.deviceLoadPromise = null;
-      this.root = null;
-      this.elements = {};
     }
   }
 
