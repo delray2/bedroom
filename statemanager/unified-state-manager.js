@@ -214,6 +214,7 @@ class UnifiedStateManager {
       'switch', 'level', 'hue', 'saturation', 'colorTemperature',
       'lock', 'contact', 'temperature', 'thermostatMode',
       'thermostatOperatingState', 'heatingSetpoint', 'coolingSetpoint',
+      'thermostatFanMode', 'supportedThermostatFanModes', 'thermostatSetpoint',
       'power', 'application', 'transportStatus', 'groupState'
     ];
     
@@ -607,7 +608,7 @@ class UnifiedStateManager {
     }
     
     // Thermostat
-    if ('thermostatMode' in state || 'thermostatOperatingState' in state || 'coolingSetpoint' in state || 'heatingSetpoint' in state) {
+    if ('thermostatMode' in state || 'thermostatOperatingState' in state || 'coolingSetpoint' in state || 'heatingSetpoint' in state || 'thermostatFanMode' in state || 'temperature' in state) {
       this.updateThermostatVisualState(state);
     }
     
@@ -735,12 +736,29 @@ class UnifiedStateManager {
     btn.classList.add('thermostat');
     const heat = mode.includes('heat');
     const cool = mode.includes('cool');
+    const off = mode === 'off' || mode === '';
+    
     btn.classList.toggle('heating', heat);
     btn.classList.toggle('cooling', cool);
     btn.classList.toggle('is-on', heat || cool);
     
-    const glow = heat ? 'rgba(255,148,54,.92)' : cool ? 'rgba(86,175,255,.95)' : 'rgba(180,180,180,.4)';
-    this._setGlow(btn, glow, .55);
+    // Enhanced visual feedback based on mode and temperature
+    let glow, strength = 0.55;
+    if (heat) {
+      glow = 'rgba(255,148,54,.92)';
+      strength = 0.7;
+    } else if (cool) {
+      glow = 'rgba(86,175,255,.95)';
+      strength = 0.7;
+    } else if (off) {
+      glow = 'rgba(180,180,180,.3)';
+      strength = 0.3;
+    } else {
+      glow = 'rgba(180,180,180,.4)';
+      strength = 0.4;
+    }
+    
+    this._setGlow(btn, glow, strength);
     if (heat || cool) this._pulse(btn);
   }
 

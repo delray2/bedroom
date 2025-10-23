@@ -266,6 +266,9 @@ backend.get('/auth/login', (req, res) => {
   res.redirect('https://accounts.spotify.com/authorize/?' + authQueryParameters.toString());
 });
 
+// Track processed authorization codes to prevent duplicate processing
+const processedCodes = new Set();
+
 // Spotify OAuth callback
 backend.get('/oauth/callback', async (req, res) => {
   const code = req.query.code;
@@ -275,6 +278,8 @@ backend.get('/oauth/callback', async (req, res) => {
   console.log('Spotify callback received - Code:', code ? 'Present' : 'Missing');
   console.log('Spotify callback received - State:', state);
   console.log('Spotify callback received - Error:', error);
+  console.log('Spotify callback received - User Agent:', req.get('User-Agent'));
+  console.log('Spotify callback received - Referer:', req.get('Referer'));
   
   // Handle OAuth errors
   if (error) {
@@ -286,6 +291,39 @@ backend.get('/oauth/callback', async (req, res) => {
   if (!code) {
     console.error('No authorization code received from Spotify');
     return res.status(400).send('No authorization code received from Spotify');
+  }
+  
+  // Prevent duplicate processing of the same authorization code
+  if (processedCodes.has(code)) {
+    console.log('Authorization code already processed, ignoring duplicate request');
+    return res.status(200).send(`
+      <html>
+        <head><title>Spotify Authentication</title></head>
+        <body style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px;">
+          <h2>✅ Already authenticated with Spotify!</h2>
+          <p>Redirecting back to dashboard...</p>
+          <script>
+            setTimeout(() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.reload();
+              }
+            }, 1000);
+          </script>
+        </body>
+      </html>
+    `);
+  }
+  
+  // Mark this code as processed
+  processedCodes.add(code);
+  
+  // Clean up old codes (keep only last 10)
+  if (processedCodes.size > 10) {
+    const codesArray = Array.from(processedCodes);
+    processedCodes.clear();
+    codesArray.slice(-5).forEach(code => processedCodes.add(code));
   }
   
   try {
@@ -320,6 +358,7 @@ backend.get('/oauth/callback', async (req, res) => {
       spotifyRefreshToken = response.data.refresh_token || spotifyRefreshToken; // Store refresh token
       console.log('Access token received successfully');
       console.log('Refresh token stored:', spotifyRefreshToken ? 'Yes' : 'No');
+      console.log('Token expires in:', response.data.expires_in, 'seconds');
       res.send(`
         <html>
           <head><title>Spotify Authentication</title></head>
@@ -328,15 +367,17 @@ backend.get('/oauth/callback', async (req, res) => {
             <p>Redirecting back to dashboard...</p>
             <div id="countdown">3</div>
             <script>
-              // Countdown and redirect
+              // Single redirect after countdown to prevent multiple requests
               let countdown = 3;
               const countdownElement = document.getElementById('countdown');
+              let redirected = false;
               
               const timer = setInterval(() => {
                 countdown--;
                 countdownElement.textContent = countdown;
                 
-                if (countdown <= 0) {
+                if (countdown <= 0 && !redirected) {
+                  redirected = true;
                   clearInterval(timer);
                   
                   // In Electron, just go back to the previous page
@@ -346,15 +387,6 @@ backend.get('/oauth/callback', async (req, res) => {
                     // Fallback - reload the page
                     window.location.reload();
                   }
-                }
-              }, 1000);
-              
-              // Also try immediate redirect after a short delay
-              setTimeout(() => {
-                if (window.history.length > 1) {
-                  window.history.back();
-                } else {
-                  window.location.reload();
                 }
               }, 1000);
             </script>
@@ -408,7 +440,11 @@ backend.get('/auth/token', (req, res) => {
   if (!spotifyAccessToken) {
     return res.status(401).json({ error: 'Not authenticated with Spotify' });
   }
-  res.json({ access_token: spotifyAccessToken });
+  res.json({ 
+    access_token: spotifyAccessToken,
+    refresh_token: spotifyRefreshToken,
+    expires_in: 3600 // Default 1 hour
+  });
 });
 
 // Logout endpoint to clear tokens
@@ -660,6 +696,7 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
     res.json({ 
       success: true, 
       access_token: spotifyAccessToken,
+      refresh_token: spotifyRefreshToken,
       expires_in: response.data.expires_in || 3600
     });
 

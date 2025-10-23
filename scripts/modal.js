@@ -121,6 +121,11 @@ function closeModal() {
   window.currentOpenDeviceId = null;
   console.log('Modal closed, cleared currentOpenDeviceId');
   
+  // Call uiManager hideModal if it exists (for thermostat cleanup)
+  if (window.uiManager && typeof window.uiManager.hideModal === 'function') {
+    window.uiManager.hideModal();
+  }
+  
   clearModalTimeout();
   stopActivityMonitoring();
   historyStack.length = 0;

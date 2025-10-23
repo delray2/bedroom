@@ -3,8 +3,10 @@
 
   const AUTH_STORAGE_KEY = 'spotify_authenticated';
   const TOKEN_STORAGE_KEY = 'spotify_access_token';
+  const REFRESH_TOKEN_STORAGE_KEY = 'spotify_refresh_token';
+  const TOKEN_EXPIRY_STORAGE_KEY = 'spotify_token_expiry';
   const POLL_INTERVAL_MS = 10000;
-  const TOKEN_REFRESH_INTERVAL_MS = 45 * 60 * 1000; // 45 minutes
+  const TOKEN_REFRESH_INTERVAL_MS = 50 * 60 * 1000; // 50 minutes (refresh before 1 hour expiry)
 
   class MusicController {
     constructor() {
@@ -41,14 +43,50 @@
 
     restoreFromStorage() {
       try {
-        const storedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-        const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+        const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+        const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+        const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+        const storedExpiry = localStorage.getItem(TOKEN_EXPIRY_STORAGE_KEY);
+        
         if (storedAuth === 'true' && storedToken) {
-          this.state.isAuthenticated = true;
-          this.state.lastUpdated = Date.now();
+          // Check if token is still valid (not expired)
+          const now = Date.now();
+          const expiry = storedExpiry ? parseInt(storedExpiry, 10) : 0;
+          
+          if (expiry > now) {
+            // Token is still valid
+            this.state.isAuthenticated = true;
+            this.state.lastUpdated = Date.now();
+            console.log('🎵 Restored valid Spotify authentication from localStorage');
+            
+            // Start token refresh if we have a refresh token
+            if (storedRefreshToken) {
+              this.startTokenRefresh();
+            }
+          } else {
+            // Token is expired, try to refresh if we have a refresh token
+            if (storedRefreshToken) {
+              console.log('🎵 Access token expired, attempting refresh...');
+              this.refreshToken().then((success) => {
+                if (success) {
+                  console.log('🎵 Token refreshed successfully');
+                  this.startTokenRefresh();
+                } else {
+                  console.log('🎵 Token refresh failed, clearing stored auth');
+                  this.clearStoredToken();
+                }
+              }).catch(() => {
+                console.log('🎵 Token refresh failed, clearing stored auth');
+                this.clearStoredToken();
+              });
+            } else {
+              console.log('🎵 Token expired and no refresh token available');
+              this.clearStoredToken();
+            }
+          }
         }
       } catch (error) {
-        console.warn('MusicController: Unable to restore session storage', error);
+        console.warn('MusicController: Unable to restore localStorage', error);
       }
     }
 
@@ -138,7 +176,7 @@
 
         const data = await response.json();
         if (data && data.access_token) {
-          this.setAuthenticated(true, data.access_token);
+          this.setAuthenticated(true, data.access_token, data.refresh_token, data.expires_in);
           return true;
         }
 
@@ -151,13 +189,13 @@
       }
     }
 
-    setAuthenticated(isAuthenticated, token = null) {
+    setAuthenticated(isAuthenticated, token = null, refreshToken = null, expiresIn = 3600) {
       const changed = this.state.isAuthenticated !== isAuthenticated;
       this.state.isAuthenticated = isAuthenticated;
       this.state.lastUpdated = Date.now();
 
       if (isAuthenticated && token) {
-        this.persistToken(token);
+        this.persistToken(token, refreshToken, expiresIn);
         window.dispatchEvent(new CustomEvent('spotify:authenticated'));
       }
 
@@ -176,10 +214,20 @@
       }
     }
 
-    persistToken(token) {
+    persistToken(token, refreshToken = null, expiresIn = 3600) {
       try {
-        sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-        sessionStorage.setItem(AUTH_STORAGE_KEY, 'true');
+        localStorage.setItem(TOKEN_STORAGE_KEY, token);
+        localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+        
+        // Calculate expiry time (expiresIn is in seconds)
+        const expiryTime = Date.now() + (expiresIn * 1000);
+        localStorage.setItem(TOKEN_EXPIRY_STORAGE_KEY, expiryTime.toString());
+        
+        if (refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+        }
+        
+        console.log('🎵 Token persisted to localStorage with expiry:', new Date(expiryTime).toLocaleString());
       } catch (error) {
         console.warn('MusicController: unable to persist token', error);
       }
@@ -187,8 +235,11 @@
 
     clearStoredToken() {
       try {
-        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_EXPIRY_STORAGE_KEY);
+        console.log('🎵 Cleared all Spotify tokens from localStorage');
       } catch (error) {
         console.warn('MusicController: unable to clear token', error);
       }
@@ -227,9 +278,9 @@
     }
 
     async refreshToken() {
-      if (!this.state.isAuthenticated) return;
+      if (!this.state.isAuthenticated) return false;
       const base = this.getBaseUrl();
-      if (!base) return;
+      if (!base) return false;
 
       try {
         const response = await fetch(`${base}/api/spotify/refresh-token`, {
@@ -239,15 +290,18 @@
           if (response.status === 401) {
             this.setAuthenticated(false);
           }
-          return;
+          return false;
         }
         const data = await response.json().catch(() => null);
         if (data && data.access_token) {
-          this.persistToken(data.access_token);
+          this.persistToken(data.access_token, data.refresh_token, data.expires_in || 3600);
+          return true;
         }
+        return false;
       } catch (error) {
         console.warn('MusicController: refresh token failed', error);
         this.emit('error', error);
+        return false;
       }
     }
 
