@@ -46,6 +46,54 @@ const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET || 'acf11af6751c4c
 let spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI || `https://${currentIP}:4711/oauth/callback`;
 const spotifyScope = process.env.SPOTIFY_SCOPE || 'user-read-private user-read-email streaming user-read-playback-state user-modify-playback-state';
 
+const spotifyTokenStoragePath = path.join(__dirname, 'spotify-tokens.json');
+
+function loadSpotifyTokensFromDisk() {
+  try {
+    if (!fs.existsSync(spotifyTokenStoragePath)) {
+      return;
+    }
+
+    const raw = fs.readFileSync(spotifyTokenStoragePath, 'utf-8');
+    if (!raw) {
+      return;
+    }
+
+    const stored = JSON.parse(raw);
+    spotifyAccessToken = stored.accessToken || '';
+    spotifyRefreshToken = stored.refreshToken || '';
+
+    if (spotifyAccessToken || spotifyRefreshToken) {
+      console.log('🎵 Loaded Spotify tokens from disk');
+    }
+  } catch (error) {
+    console.error('Failed to load Spotify tokens from disk:', error.message);
+  }
+}
+
+function persistSpotifyTokensToDisk() {
+  try {
+    if (!spotifyAccessToken && !spotifyRefreshToken) {
+      if (fs.existsSync(spotifyTokenStoragePath)) {
+        fs.unlinkSync(spotifyTokenStoragePath);
+      }
+      return;
+    }
+
+    const payload = {
+      accessToken: spotifyAccessToken,
+      refreshToken: spotifyRefreshToken,
+      updatedAt: new Date().toISOString()
+    };
+
+    fs.writeFileSync(spotifyTokenStoragePath, JSON.stringify(payload, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error('Failed to persist Spotify tokens:', error.message);
+  }
+}
+
+loadSpotifyTokensFromDisk();
+
 console.log('🎵 Spotify redirect URI:', spotifyRedirectUri);
 console.log('📝 Environment DETECTED_HOST_IP:', process.env.DETECTED_HOST_IP);
 
@@ -356,6 +404,7 @@ backend.get('/oauth/callback', async (req, res) => {
     if (response.status === 200) {
       spotifyAccessToken = response.data.access_token;
       spotifyRefreshToken = response.data.refresh_token || spotifyRefreshToken; // Store refresh token
+      persistSpotifyTokensToDisk();
       console.log('Access token received successfully');
       console.log('Refresh token stored:', spotifyRefreshToken ? 'Yes' : 'No');
       console.log('Token expires in:', response.data.expires_in, 'seconds');
@@ -452,6 +501,7 @@ backend.post('/auth/logout', (req, res) => {
   console.log('Spotify logout requested');
   spotifyAccessToken = '';
   spotifyRefreshToken = '';
+  persistSpotifyTokensToDisk();
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -674,13 +724,14 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
     }
 
     // Exchange refresh token for new access token
-    const response = await axios.post('https://accounts.spotify.com/api/token', 
+    const response = await axios.post('https://accounts.spotify.com/api/token',
       new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: spotifyRefreshToken,
         client_id: spotifyClientId
       }), {
         headers: {
+          'Authorization': 'Basic ' + Buffer.from(spotifyClientId + ':' + spotifyClientSecret).toString('base64'),
           'Content-Type': 'application/x-www-form-urlencoded'
         }
       }
@@ -691,6 +742,7 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
     if (response.data.refresh_token) {
       spotifyRefreshToken = response.data.refresh_token;
     }
+    persistSpotifyTokensToDisk();
 
     console.log('🎵 Spotify access token refreshed successfully');
     res.json({ 
@@ -713,6 +765,7 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
       console.error('Refresh token is invalid or expired - user needs to re-authenticate');
       spotifyRefreshToken = ''; // Clear invalid refresh token
       spotifyAccessToken = ''; // Clear access token
+      persistSpotifyTokensToDisk();
     }
     
     res.status(error.response?.status || 500).json({ 

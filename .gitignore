@@ -56,4 +56,8 @@ Thumbs.db
 
 # Logs
 logs
-*.log 
+*.log
+
+# Local token storage
+spotify-tokens.json
+
