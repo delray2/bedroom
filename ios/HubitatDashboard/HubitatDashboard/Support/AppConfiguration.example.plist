@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>BackendBaseURL</key>
+    <string>https://192.168.1.10:4711</string>
+    <key>WebSocketURL</key>
+    <string>wss://192.168.1.10:4712</string>
+    <key>GithubProxyBaseURL</key>
+    <string>https://your-github-username.github.io/spotify-proxy</string>
+    <key>SpotifyClientID</key>
+    <string>your-client-id</string>
+    <key>SpotifyRedirectScheme</key>
+    <string>hubitatdashboard</string>
+</dict>
+</plist>
