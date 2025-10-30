@@ -153,6 +153,19 @@ final class DashboardViewModel: ObservableObject {
             } else {
                 devices.append(device)
             }
+        case .hubitatAttributes(let deviceId, let label, let attributes):
+            if let index = devices.firstIndex(where: { $0.deviceId == deviceId }) {
+                var current = devices[index]
+                var updatedAttributes = current.attributes
+                for (key, value) in attributes {
+                    updatedAttributes[key] = value
+                }
+                let updatedLabel = label?.isEmpty == false ? label! : current.label
+                devices[index] = DeviceState(deviceId: current.deviceId, label: updatedLabel, attributes: updatedAttributes)
+            } else {
+                let resolvedLabel = label?.isEmpty == false ? label! : "Device #\(deviceId)"
+                devices.append(DeviceState(deviceId: deviceId, label: resolvedLabel, attributes: attributes))
+            }
         case .spotify(let state):
             spotifyState = state
         case .notification(let note):

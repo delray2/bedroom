@@ -24,6 +24,7 @@ final class SpotifyAuthManager: NSObject {
     private var token: Token? {
         didSet { persistToken() }
     }
+    private var authenticationSession: ASWebAuthenticationSession?
 
     private let storageKey = "spotify-auth-token"
 
@@ -67,17 +68,20 @@ final class SpotifyAuthManager: NSObject {
 
             let session = ASWebAuthenticationSession(url: authorizeURL, callbackURLScheme: callbackScheme) { callbackURL, error in
                 if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {
+                    self.authenticationSession = nil
                     continuation.resume(throwing: AuthError.cancelled)
                     return
                 }
 
                 guard let callbackURL else {
+                    self.authenticationSession = nil
                     continuation.resume(throwing: AuthError.invalidCallback)
                     return
                 }
 
                 guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
                       let fragment = components.fragment else {
+                    self.authenticationSession = nil
                     continuation.resume(throwing: AuthError.invalidCallback)
                     return
                 }
@@ -88,18 +92,22 @@ final class SpotifyAuthManager: NSObject {
                       let accessToken = params["access_token"],
                       let expiresInString = params["expires_in"],
                       let expiresIn = TimeInterval(expiresInString) else {
+                    self.authenticationSession = nil
                     continuation.resume(throwing: AuthError.invalidCallback)
                     return
                 }
 
                 let token = Token(accessToken: accessToken, expiresAt: Date().addingTimeInterval(expiresIn))
                 self.token = token
+                self.authenticationSession = nil
                 continuation.resume(returning: token)
             }
 
             session.prefersEphemeralWebBrowserSession = true
             session.presentationContextProvider = self
+            self.authenticationSession = session
             if !session.start() {
+                self.authenticationSession = nil
                 continuation.resume(throwing: AuthError.presentationAnchor)
             }
         }
