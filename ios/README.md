@@ -44,6 +44,31 @@ The bridge performs two tasks:
 3. Add the custom URL scheme (`hubitatdashboard`) to the project if you change it in the configuration plist.
 4. Build and run on a simulator or device.
 
+## Installing on a Physical iPhone
+
+Follow these steps to install the app directly onto an iPhone that you own:
+
+1. **Join the Apple Developer Program (optional).**
+   - A paid Developer Program membership is required to distribute the app via TestFlight or the App Store, but is not required for personal deployment to your own device.
+2. **Connect your iPhone to your Mac** with a USB cable (or configure wireless debugging in Xcode).
+3. **Trust the computer** on the device when prompted.
+4. In Xcode, **select your iPhone** from the device selector near the Run button.
+5. Under the project target's **Signing & Capabilities** tab:
+   - Choose your personal development team.
+   - Ensure the Bundle Identifier is unique (e.g., append your initials).
+6. **Update the provisioning profile** by letting Xcode manage signing. If prompted, sign in with your Apple ID and allow Xcode to create a provisioning profile.
+7. **Build & Run** (`Cmd + R`). Xcode will compile the project, install it on the connected iPhone, and launch it automatically.
+8. On first launch you may be prompted to **trust the developer profile** on the device:
+   - Go to *Settings → General → VPN & Device Management*.
+   - Tap your Apple ID under Developer App and select *Trust*.
+9. The app is now available on your home screen. Subsequent builds can be installed by pressing Run again in Xcode.
+
+### Handling Spotify Redirects on Device
+
+- Ensure the `SpotifyRedirectScheme` in `AppConfiguration.plist` matches the URL scheme registered in Xcode (*Info → URL Types*).
+- Verify that the GitHub Pages proxy is accessible over HTTPS from the device's network.
+- When prompted during the OAuth flow, Safari will redirect back into the app using the configured scheme.
+
 ## Runtime Notes
 
 - The app uses the existing WebSocket stream from the Electron backend for real-time Hubitat updates.
