@@ -7,8 +7,21 @@ const dotenv = require('dotenv');
 const https = require('https');
 const fs = require('fs');
 
+// Configure axios to ignore SSL certificate errors for Spotify API calls
+// This is necessary when network-level certificate interception occurs
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
+
+// Configure axios defaults to use the custom agent for HTTPS requests
+axios.defaults.httpsAgent = httpsAgent;
+
 // Load environment variables
 dotenv.config();
+
+// Render middleware configuration
+const MIDDLEWARE_URL = process.env.MIDDLEWARE_URL || 'https://spotifyserver-n9nk.onrender.com';
+const MIDDLEWARE_WS_URL = MIDDLEWARE_URL.replace(/^https?:\/\//, 'wss://').replace(/^http:\/\//, 'ws://') + '/ws';
 
 // IP Detection for dynamic URLs
 const os = require('os');
@@ -43,8 +56,31 @@ let spotifyRefreshToken = ''; // Add missing refresh token variable
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID || '6eba173437884404862a5bdd132ad7c3';
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET || 'acf11af6751c4c55a48ed93fb4f7b492';
 // Dynamic redirect URI based on detected IP (must be HTTPS for Spotify)
-let spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI || `https://${currentIP}:4711/oauth/callback`;
+let spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI || `https://${currentIP}:4711/oauth/receive`;
 const spotifyScope = process.env.SPOTIFY_SCOPE || 'user-read-private user-read-email streaming user-read-playback-state user-modify-playback-state';
+
+// Render middleware session management
+let sessionId = null;
+let middlewareWs = null;
+let lastNonce = null;
+let expiresAt = 0; // Track token expiration time
+
+// Helper functions for base64url encoding/decoding
+function b64urlEncode(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString('base64url');
+}
+
+function b64urlDecode(str) {
+  return JSON.parse(Buffer.from(str, 'base64url').toString('utf8'));
+}
+
+function randomNonce() {
+  return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
+}
+
+function nowMs() {
+  return Date.now();
+}
 
 const spotifyTokenStoragePath = path.join(__dirname, 'spotify-tokens.json');
 
@@ -62,6 +98,14 @@ function loadSpotifyTokensFromDisk() {
     const stored = JSON.parse(raw);
     spotifyAccessToken = stored.accessToken || '';
     spotifyRefreshToken = stored.refreshToken || '';
+    
+    // Restore expiresAt if available, otherwise set default (1 hour from now)
+    if (stored.expiresAt && stored.expiresAt > nowMs()) {
+      expiresAt = stored.expiresAt;
+    } else if (spotifyAccessToken) {
+      // If we have a token but no expiry, assume it expires in 1 hour
+      expiresAt = nowMs() + 3600000;
+    }
 
     if (spotifyAccessToken || spotifyRefreshToken) {
       console.log('🎵 Loaded Spotify tokens from disk');
@@ -83,6 +127,7 @@ function persistSpotifyTokensToDisk() {
     const payload = {
       accessToken: spotifyAccessToken,
       refreshToken: spotifyRefreshToken,
+      expiresAt: expiresAt,
       updatedAt: new Date().toISOString()
     };
 
@@ -94,8 +139,134 @@ function persistSpotifyTokensToDisk() {
 
 loadSpotifyTokensFromDisk();
 
+// Generate or restore session ID
+if (!sessionId) {
+  sessionId = `local_${randomNonce()}`;
+}
+
 console.log('🎵 Spotify redirect URI:', spotifyRedirectUri);
 console.log('📝 Environment DETECTED_HOST_IP:', process.env.DETECTED_HOST_IP);
+console.log('🌐 Render Middleware URL:', MIDDLEWARE_URL);
+console.log('🔌 Middleware WebSocket URL:', MIDDLEWARE_WS_URL);
+console.log('🆔 Session ID:', sessionId);
+
+// Connect to Render middleware WebSocket
+function ensureMiddlewareWsConnected() {
+  if (!sessionId) return;
+  if (middlewareWs && (middlewareWs.readyState === 1 || middlewareWs.readyState === 0)) { // OPEN or CONNECTING
+    return;
+  }
+
+  const WebSocket = require('ws');
+  middlewareWs = new WebSocket(`${MIDDLEWARE_WS_URL}?sessionId=${encodeURIComponent(sessionId)}`);
+
+  middlewareWs.on('open', () => {
+    console.log('✅ Connected to Render middleware WebSocket');
+    console.log('🆔 Session ID sent to middleware:', sessionId);
+    
+    // Send tokens when WebSocket opens (matches middleware pattern)
+    if (spotifyAccessToken) {
+      const expiresIn = Math.max(1, Math.floor((expiresAt - nowMs()) / 1000));
+      middlewareWs.send(JSON.stringify({
+        type: 'tokens',
+        access_token: spotifyAccessToken,
+        expires_in: expiresIn
+      }));
+      console.log('✅ Sent tokens to Render middleware');
+    } else {
+      console.log('⚠️ No tokens to send (user needs to login)');
+    }
+  });
+
+  middlewareWs.on('message', async (buf) => {
+    let msg;
+    try {
+      msg = JSON.parse(buf.toString('utf8'));
+    } catch {
+      return;
+    }
+
+    if (msg.type === 'refresh_required') {
+      console.log('🔄 Render middleware requested token refresh');
+      if (spotifyRefreshToken) {
+        await refreshAccessToken();
+        if (middlewareWs && middlewareWs.readyState === WebSocket.OPEN) {
+          middlewareWs.send(JSON.stringify({
+            type: 'refreshed',
+            access_token: spotifyAccessToken,
+            expires_in: Math.max(1, Math.floor((expiresAt - nowMs()) / 1000))
+          }));
+          broadcastSSE('status', { refreshed: true, expiresAt });
+        }
+      }
+      return;
+    }
+
+    if (msg.type === 'logout') {
+      console.log('🚪 Render middleware requested logout');
+      spotifyAccessToken = '';
+      spotifyRefreshToken = '';
+      expiresAt = 0;
+      lastPlayerState = null;
+      persistSpotifyTokensToDisk();
+      broadcast({
+        type: 'spotify_logout',
+        timestamp: Date.now()
+      });
+      broadcastSSE('status', { loggedIn: false });
+      broadcastSSE('player_state', null);
+      return;
+    }
+
+    if (msg.type === 'player_state') {
+      // Only update lastPlayerState if we have valid data (don't clear on null/undefined)
+      if (msg.data && msg.data.item) {
+        lastPlayerState = msg.data;
+        const trackName = lastPlayerState.item.name || 'no item';
+        console.log('🔄 Middleware player_state received: track:', trackName, 'SSE clients:', sseClients.size);
+        
+        // Forward player state to frontend via WebSocket and SSE
+        broadcast({
+          type: 'spotify_state_change',
+          data: msg.data,
+          timestamp: Date.now()
+        });
+        
+        // Always broadcast via SSE (even if no clients currently - it will be cached for new connections)
+        broadcastSSE('player_state', lastPlayerState);
+      } else if (msg.data === null) {
+        // Explicit null from middleware - only clear if we don't have recent valid data
+        const timeSinceLastUpdate = Date.now() - (lastPlayerState?.timestamp || 0);
+        if (timeSinceLastUpdate > 30000) { // 30 seconds without valid data
+          console.log('🔄 Clearing player_state after 30s without valid data');
+          lastPlayerState = null;
+          broadcastSSE('player_state', null);
+        } else {
+          console.log('🔄 Ignoring null player_state (have recent valid data, time since update:', timeSinceLastUpdate, 'ms)');
+        }
+      } else {
+        // msg.data is undefined or empty - don't update lastPlayerState, just log
+        console.log('🔄 Middleware player_state received but data is empty/undefined, keeping cached state');
+      }
+      return;
+    }
+  });
+
+  middlewareWs.on('close', () => {
+    console.log('⚠️ Render middleware WebSocket closed, reconnecting...');
+    middlewareWs = null;
+    setTimeout(ensureMiddlewareWsConnected, 1000);
+  });
+
+  middlewareWs.on('error', (error) => {
+    console.error('❌ Render middleware WebSocket error:', error.message);
+  });
+}
+
+// Start middleware connection if we have tokens (matches middleware pattern)
+if (spotifyAccessToken || spotifyRefreshToken) {
+  ensureMiddlewareWsConnected();
+}
 
 // --- WebSocket server setup ---
 const wss = new WebSocketServer({ port: 4712, host: '0.0.0.0' });
@@ -105,6 +276,10 @@ function broadcast(data) {
     if (client.readyState === 1) client.send(msg);
   });
 }
+
+// --- SSE clients for UI updates (like local server example) ---
+const sseClients = new Set();
+let lastPlayerState = null; // Cached for new UI connections
 
 // --- Express backend setup ---
 const backendPort = 4711; // Arbitrary port for notifications
@@ -279,9 +454,108 @@ backend.get('/api/health', (req, res) => {
       authenticated: !!spotifyAccessToken,
       hasRefreshToken: !!spotifyRefreshToken,
       redirectUri: spotifyRedirectUri
+    },
+    middleware: {
+      url: MIDDLEWARE_URL,
+      connected: middlewareWs?.readyState === 1, // OPEN
+      sessionId: sessionId || null
     }
   });
 });
+
+// Network info endpoint for IP detection
+backend.get('/api/network-info', (req, res) => {
+  res.json({
+    ip: currentIP,
+    timestamp: Date.now(),
+    detected: true
+  });
+});
+
+// SSE stream for UI updates (player state + status) - like local server example
+// IMPORTANT: Register this route early, before any catch-all routes
+backend.get('/events', (req, res) => {
+  console.log('📡 SSE connection request received from:', req.ip || req.connection.remoteAddress);
+  
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow CORS for SSE
+  res.flushHeaders?.();
+
+  sseClients.add(res);
+  console.log('📡 SSE client connected. Total clients:', sseClients.size);
+
+  // Immediate snapshot (matches middleware pattern)
+  const isLoggedIn = !!(spotifyAccessToken || spotifyRefreshToken);
+  res.write(`event: status\ndata: ${JSON.stringify({ loggedIn: isLoggedIn, connectedToMiddleware: middlewareWs?.readyState === 1, expiresAt })}\n\n`);
+  
+  // Always send player_state if we have it (even if null, so frontend knows state)
+  if (lastPlayerState && lastPlayerState.item) {
+    console.log('📡 SSE: Sending initial player_state:', lastPlayerState.item.name);
+    res.write(`event: player_state\ndata: ${JSON.stringify(lastPlayerState)}\n\n`);
+  } else if (lastPlayerState === null) {
+    console.log('📡 SSE: Sending initial null player_state');
+    res.write(`event: player_state\ndata: null\n\n`);
+  } else {
+    console.log('📡 SSE: No initial player_state cached');
+  }
+
+  // Send a keepalive ping every 30 seconds to keep connection alive
+  const keepAliveInterval = setInterval(() => {
+    if (sseClients.has(res)) {
+      try {
+        res.write(': keepalive\n\n');
+      } catch (e) {
+        console.error('📡 SSE keepalive write error:', e.message);
+        clearInterval(keepAliveInterval);
+        sseClients.delete(res);
+        console.log('📡 Removed SSE client due to keepalive error. Remaining clients:', sseClients.size);
+      }
+    } else {
+      clearInterval(keepAliveInterval);
+    }
+  }, 30000);
+  
+  req.on('close', () => {
+    clearInterval(keepAliveInterval);
+    sseClients.delete(res);
+    console.log('📡 SSE client disconnected. Remaining clients:', sseClients.size);
+  });
+  
+  req.on('error', (err) => {
+    clearInterval(keepAliveInterval);
+    console.error('📡 SSE connection error:', err.message);
+    sseClients.delete(res);
+  });
+});
+
+function broadcastSSE(eventName, data) {
+  const payload = `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+  let sentCount = 0;
+  const deadClients = [];
+  
+  for (const res of sseClients) {
+    try { 
+      res.write(payload);
+      sentCount++;
+    } catch (e) {
+      console.error('📡 SSE write error:', e.message);
+      // Mark for removal
+      deadClients.push(res);
+    }
+  }
+  
+  // Remove dead clients
+  deadClients.forEach(res => {
+    sseClients.delete(res);
+    console.log('📡 Removed dead SSE client. Remaining clients:', sseClients.size);
+  });
+  
+  if (eventName === 'player_state') {
+    console.log('📡 SSE player_state broadcasted to', sentCount, 'clients, data:', data ? (data.item ? `track: ${data.item.name}` : 'no item') : 'null');
+  }
+}
 
 // --- Spotify Authentication Routes ---
 
@@ -295,29 +569,126 @@ function generateRandomString(length) {
   return text;
 }
 
-// Spotify login endpoint
-backend.get('/auth/login', (req, res) => {
-  const state = generateRandomString(16);
-  
-  console.log('🎵 Starting Spotify authentication flow');
-  console.log('🎵 Redirect URI:', spotifyRedirectUri);
-  console.log('🎵 Client ID:', spotifyClientId);
-  
-  const authQueryParameters = new URLSearchParams({
-    response_type: 'code',
-    client_id: spotifyClientId,
-    scope: spotifyScope,
-    redirect_uri: spotifyRedirectUri,
-    state: state
+// Spotify token exchange (local - keeps client secret secure)
+async function exchangeCodeForTokens(code) {
+  const redirectUri = new URL('/oauth/callback', MIDDLEWARE_URL).toString();
+  const body = new URLSearchParams();
+  body.set('grant_type', 'authorization_code');
+  body.set('code', code);
+  body.set('redirect_uri', redirectUri);
+
+  const basic = Buffer.from(`${spotifyClientId}:${spotifyClientSecret}`).toString('base64');
+
+  const r = await axios.post('https://accounts.spotify.com/api/token', body.toString(), {
+    headers: {
+      'Authorization': `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    httpsAgent: httpsAgent,
+    timeout: 10000
   });
+
+  if (!r.status || r.status !== 200) {
+    const t = await r.data;
+    throw new Error(`Token exchange failed: ${r.status} ${JSON.stringify(t)}`);
+  }
+
+  spotifyAccessToken = r.data.access_token;
+  spotifyRefreshToken = r.data.refresh_token;
+  expiresAt = nowMs() + (r.data.expires_in * 1000);
+  persistSpotifyTokensToDisk();
   
-  res.redirect('https://accounts.spotify.com/authorize/?' + authQueryParameters.toString());
+  // Send tokens to Render middleware
+  if (middlewareWs && middlewareWs.readyState === middlewareWs.OPEN) {
+    middlewareWs.send(JSON.stringify({
+      type: 'tokens',
+      access_token: spotifyAccessToken,
+      expires_in: Math.max(1, Math.floor((expiresAt - nowMs()) / 1000))
+    }));
+  }
+  
+  return r.data;
+}
+
+// Spotify login endpoint - redirects to Render middleware OAuth start (matches middleware pattern)
+backend.get('/login', (req, res) => {
+  sessionId = sessionId || `local_${randomNonce()}`;
+  lastNonce = randomNonce();
+
+  const localCallback = `https://${currentIP}:${backendPort}/oauth/receive`;
+  const stateObj = { sessionId, localCallback, nonce: lastNonce, createdAt: Date.now() };
+  const stateB64 = b64urlEncode(stateObj);
+
+  const u = new URL(`${MIDDLEWARE_URL}/oauth/start`);
+  u.searchParams.set('client_id', spotifyClientId);
+  u.searchParams.set('scope', spotifyScope);
+  u.searchParams.set('state_b64', stateB64);
+
+  console.log('🎵 Starting Spotify authentication via Render middleware');
+  console.log('🎵 Redirecting to:', u.toString());
+  
+  res.redirect(u.toString());
+});
+
+// Legacy /auth/login endpoint (kept for backward compatibility)
+backend.get('/auth/login', (req, res) => {
+  res.redirect('/login');
 });
 
 // Track processed authorization codes to prevent duplicate processing
 const processedCodes = new Set();
 
-// Spotify OAuth callback
+// OAuth receive endpoint - Render middleware redirects here with code
+backend.get('/oauth/receive', async (req, res) => {
+  const { code, state_b64 } = req.query;
+  
+  if (!code || !state_b64) {
+    return res.status(400).send('Missing code/state_b64');
+  }
+
+  let decoded;
+  try {
+    decoded = b64urlDecode(state_b64);
+  } catch {
+    return res.status(400).send('Bad state_b64');
+  }
+  
+  if (decoded.nonce !== lastNonce) {
+    return res.status(400).send('State nonce mismatch');
+  }
+
+  sessionId = decoded.sessionId;
+
+  try {
+    await exchangeCodeForTokens(code);
+    ensureMiddlewareWsConnected();
+
+    // Send tokens to middleware via WebSocket
+    if (middlewareWs && middlewareWs.readyState === middlewareWs.OPEN) {
+      middlewareWs.send(JSON.stringify({
+        type: 'tokens',
+        access_token: spotifyAccessToken,
+        expires_in: Math.max(1, Math.floor((expiresAt - nowMs()) / 1000))
+      }));
+    }
+
+    // Notify frontend of successful authentication
+    broadcast({
+      type: 'spotify_authenticated',
+      timestamp: Date.now()
+    });
+    
+    // Broadcast via SSE (matches middleware pattern)
+    broadcastSSE('status', { loggedIn: true, expiresAt });
+
+    res.redirect(`/?authed=1`);
+  } catch (e) {
+    console.error('❌ Token exchange failed:', e);
+    res.status(500).send(String(e));
+  }
+});
+
+// Legacy OAuth callback (kept for backward compatibility)
 backend.get('/oauth/callback', async (req, res) => {
   const code = req.query.code;
   const state = req.query.state;
@@ -386,7 +757,10 @@ backend.get('/oauth/callback', async (req, res) => {
         code: code,
         redirect_uri: spotifyRedirectUri,
         grant_type: 'authorization_code'
-      }).toString()
+      }).toString(),
+      // Use custom HTTPS agent to bypass certificate issues
+      httpsAgent: httpsAgent,
+      timeout: 10000
     };
     
     console.log('Making auth request to Spotify...');
@@ -527,6 +901,9 @@ backend.get('/oauth/callback', async (req, res) => {
 
 // Get current access token
 backend.get('/auth/token', (req, res) => {
+  // Reload tokens from disk to ensure we have the latest
+  loadSpotifyTokensFromDisk();
+  
   if (!spotifyAccessToken) {
     return res.status(401).json({ error: 'Not authenticated with Spotify' });
   }
@@ -537,151 +914,169 @@ backend.get('/auth/token', (req, res) => {
   });
 });
 
-// Logout endpoint to clear tokens
-backend.post('/auth/logout', (req, res) => {
+// Session status endpoint (matches middleware pattern)
+backend.get('/api/session', (req, res) => {
+  res.json({
+    loggedIn: !!(spotifyAccessToken || spotifyRefreshToken),
+    sessionId: sessionId || null,
+    expiresAt: expiresAt || 0,
+    connectedToMiddleware: middlewareWs?.readyState === middlewareWs?.OPEN
+  });
+});
+
+// Get Spotify OAuth configuration (safe to expose - client ID is public, secret stays server-side)
+backend.get('/api/spotify/config', (req, res) => {
+  // The redirect URI for Spotify OAuth is the Render middleware callback URL
+  const spotifyRedirectUriForOAuth = new URL('/oauth/callback', MIDDLEWARE_URL).toString();
+  
+  res.json({
+    clientId: spotifyClientId, // Safe to expose - this is public
+    redirectUri: spotifyRedirectUriForOAuth, // Render middleware callback URL
+    scope: spotifyScope,
+    middlewareUrl: MIDDLEWARE_URL,
+    localCallback: spotifyRedirectUri // Local server callback for Render to redirect to
+  });
+});
+
+// Logout endpoint (API route - matches middleware pattern)
+backend.post('/api/logout', async (req, res) => {
+  const sid = sessionId;
+  spotifyAccessToken = '';
+  spotifyRefreshToken = '';
+  expiresAt = 0;
+  lastPlayerState = null;
+  persistSpotifyTokensToDisk();
+
+  broadcast({
+    type: 'spotify_logout',
+    timestamp: Date.now()
+  });
+  
+  // Broadcast via SSE (matches middleware pattern)
+  broadcastSSE('status', { loggedIn: false });
+  broadcastSSE('player_state', null);
+  
+  res.json({
+    ok: true,
+    middlewareLogoutUrl: sid
+      ? `${MIDDLEWARE_URL}/logout?sessionId=${encodeURIComponent(sid)}&return_to=${encodeURIComponent(`https://${currentIP}:${backendPort}/`)}`
+      : null
+  });
+});
+
+// Legacy logout endpoint (kept for backward compatibility)
+backend.post('/auth/logout', async (req, res) => {
   console.log('Spotify logout requested');
+  const sid = sessionId;
   spotifyAccessToken = '';
   spotifyRefreshToken = '';
   persistSpotifyTokensToDisk();
-  res.json({ success: true, message: 'Logged out successfully' });
-});
-
-// Get current playback state
-backend.get('/api/spotify/playback-state', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.get('https://api.spotify.com/v1/me/player', {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Playback state error:', error.message);
-    
-    const errorMessage = error.response?.data?.error?.message || 
-                        error.message || 
-                        'Failed to get playback state';
-    
-    res.status(error.response?.status || 500).json({ error: errorMessage });
-  }
-});
-
-// Play Spotify track
-backend.put('/api/spotify/play', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.put('https://api.spotify.com/v1/me/player/play', {}, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Play error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
-  }
-});
-
-// Pause Spotify track
-backend.put('/api/spotify/pause', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.put('https://api.spotify.com/v1/me/player/pause', {}, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Pause error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
-  }
-});
-
-// Previous track
-backend.post('/api/spotify/previous', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.post('https://api.spotify.com/v1/me/player/previous', {}, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Previous track error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
-  }
-});
-
-// Next track
-backend.post('/api/spotify/next', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.post('https://api.spotify.com/v1/me/player/next', {}, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Next track error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
-  }
-});
-
-// Set volume
-backend.put('/api/spotify/volume', async (req, res) => {
-  const { volume_percent } = req.body;
   
+  broadcast({
+    type: 'spotify_logout',
+    timestamp: Date.now()
+  });
+  
+  // Broadcast via SSE
+  broadcastSSE('status', { loggedIn: false });
+  broadcastSSE('player_state', null);
+  lastPlayerState = null;
+  
+  res.json({
+    success: true,
+    message: 'Logged out successfully',
+    middlewareLogoutUrl: sid
+      ? `${MIDDLEWARE_URL}/logout?sessionId=${encodeURIComponent(sid)}&return_to=${encodeURIComponent(`https://${currentIP}:${backendPort}/`)}`
+      : null
+  });
+});
+
+// Generic proxy endpoint for Spotify API calls through Render middleware (matches middleware pattern)
+backend.all('/api/spotify/*', async (req, res) => {
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Not logged in. Use /login.' });
+  }
+
+  // Verify we have tokens before making request
   if (!spotifyAccessToken) {
+    console.error('❌ No access token available for proxy request');
     return res.status(401).json({ error: 'Not authenticated with Spotify' });
   }
 
-  if (volume_percent === undefined || volume_percent < 0 || volume_percent > 100) {
-    return res.status(400).json({ error: 'volume_percent must be between 0 and 100' });
+  // Ensure middleware WebSocket is connected
+  if (!middlewareWs || middlewareWs.readyState !== 1) {
+    console.log('⚠️ Middleware WebSocket not connected, connecting...');
+    ensureMiddlewareWsConnected();
+    // Wait for connection
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+
+  // Ensure tokens are sent to middleware (in case connection was just established)
+  if (middlewareWs && middlewareWs.readyState === 1) {
+    middlewareWs.send(JSON.stringify({
+      type: 'tokens',
+      access_token: spotifyAccessToken,
+      expires_in: Math.max(1, Math.floor((expiresAt - nowMs()) / 1000))
+    }));
+    console.log('📤 Sent tokens to middleware for session:', sessionId);
+    // Small delay to ensure middleware processes the tokens
+    await new Promise(resolve => setTimeout(resolve, 500));
+  } else {
+    console.error('❌ Cannot send tokens - WebSocket not connected');
+    return res.status(503).json({ error: 'Middleware connection not ready' });
+  }
+
+  // Extract path and preserve query parameters (match middleware pattern)
+  const pathPart = req.originalUrl.replace(/^\/api\/spotify/, '');
+  const target = `${MIDDLEWARE_URL}/spotify${pathPart}`;
+
+  const headers = { 'x-session-id': sessionId };
+  const contentType = req.header('content-type');
+  if (contentType) headers['content-type'] = contentType;
+
+  // Prepare body - express.json() has already parsed it, so stringify if needed
+  let body = undefined;
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+      body = JSON.stringify(req.body);
+      headers['content-type'] = 'application/json';
+    } else if (req.body && typeof req.body === 'string' && req.body.length > 0) {
+      body = req.body;
+    }
   }
 
   try {
-    const response = await axios.put(`https://api.spotify.com/v1/me/player/volume?volume_percent=${volume_percent}`, {}, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
+    // Use axios to proxy request to middleware (matches middleware pattern)
+    const response = await axios({
+      method: req.method,
+      url: target,
+      headers: headers,
+      data: body,
+      httpsAgent: httpsAgent,
+      timeout: 30000,
+      validateStatus: () => true, // Don't throw on any status
+      responseType: 'arraybuffer'
     });
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Volume error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
+    res.status(response.status);
+    const contentType = response.headers['content-type'];
+    if (contentType) {
+      res.setHeader('content-type', contentType);
+    }
+
+    res.send(Buffer.from(response.data));
+  } catch (e) {
+    console.error('❌ Proxy request failed:', e.message);
+    res.status(502).json({ error: 'Proxy failed', detail: String(e.message) });
   }
 });
+
+// Note: /api/spotify/playback-state is now handled by the generic proxy
+// Controller should use /api/spotify/v1/me/player instead
+
+// Note: All specific Spotify endpoints (play, pause, next, previous, volume) are now handled
+// by the generic proxy at /api/spotify/* which forwards to middleware /spotify/*
+// This matches the middleware pattern where all API calls go through the generic proxy
 
 // Broadcast Spotify state changes via WebSocket
 function broadcastSpotifyStateChange(state) {
@@ -702,110 +1097,75 @@ function broadcastSpotifyStateChange(state) {
   console.log('🎵 Broadcasted Spotify state change:', state);
 }
 
-// Spotify state polling endpoint (for WebSocket broadcasting)
-backend.get('/api/spotify/state-poll', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
+// Note: Player state polling is now handled by the middleware server
+// The middleware polls Spotify and sends updates via WebSocket as 'player_state' messages
+// This endpoint is removed to match the middleware pattern
+
+// Refresh Spotify access token (local - keeps client secret secure)
+async function refreshAccessToken() {
+  if (!spotifyRefreshToken) {
+    throw new Error('No refresh token available');
   }
 
-  try {
-    const response = await axios.get('https://api.spotify.com/v1/me/player', {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`
-      }
-    });
+  const body = new URLSearchParams();
+  body.set('grant_type', 'refresh_token');
+  body.set('refresh_token', spotifyRefreshToken);
 
-    if (response.data && response.data.item) {
-      const spotifyState = {
-        isPlaying: response.data.is_playing,
-        trackInfo: {
-          name: response.data.item.name,
-          artist: response.data.item.artists.map(a => a.name).join(', '),
-          imageUrl: response.data.item.album.images.length > 0 ? response.data.item.album.images[0].url : null,
-          album: response.data.item.album.name,
-          duration: response.data.item.duration_ms,
-          popularity: response.data.item.popularity,
-          position: response.data.progress_ms,
-          id: response.data.item.id
-        },
-        device: {
-          name: response.data.device?.name || 'Unknown Device',
-          type: response.data.device?.type || 'Unknown',
-          volume: response.data.device?.volume_percent || 0
-        }
-      };
-      
-      // Broadcast the state change via WebSocket
-      broadcastSpotifyStateChange(spotifyState);
-      
-      res.json(spotifyState);
-    } else {
-      // No active playback
-      const spotifyState = {
-        isPlaying: false,
-        trackInfo: null,
-        device: null
-      };
-      
-      broadcastSpotifyStateChange(spotifyState);
-      res.json(spotifyState);
-    }
-  } catch (error) {
-    console.error('Spotify state poll error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
+  const basic = Buffer.from(`${spotifyClientId}:${spotifyClientSecret}`).toString('base64');
+
+  const r = await axios.post('https://accounts.spotify.com/api/token', body.toString(), {
+    headers: {
+      'Authorization': `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    httpsAgent: httpsAgent,
+    timeout: 10000
+  });
+
+  if (!r.status || r.status !== 200) {
+    const t = await r.data;
+    throw new Error(`Refresh failed: ${r.status} ${JSON.stringify(t)}`);
   }
-});
 
-// Refresh Spotify access token (called every hour to maintain authentication)
+  spotifyAccessToken = r.data.access_token;
+  if (r.data.refresh_token) {
+    spotifyRefreshToken = r.data.refresh_token;
+  }
+  expiresAt = nowMs() + (r.data.expires_in * 1000);
+  persistSpotifyTokensToDisk();
+  
+  return r.data;
+}
+
+// Refresh token endpoint
 backend.post('/api/spotify/refresh-token', async (req, res) => {
   try {
-    // Check if we have a refresh token stored
-    if (!spotifyRefreshToken) {
-      return res.status(401).json({ error: 'No refresh token available' });
+    const data = await refreshAccessToken();
+    
+    // Send refreshed tokens to Render middleware
+    if (middlewareWs && middlewareWs.readyState === 1) { // OPEN
+      middlewareWs.send(JSON.stringify({
+        type: 'refreshed',
+        access_token: spotifyAccessToken,
+        expires_in: Math.max(1, Math.floor((expiresAt - nowMs()) / 1000))
+      }));
     }
-
-    // Exchange refresh token for new access token
-    const response = await axios.post('https://accounts.spotify.com/api/token',
-      new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: spotifyRefreshToken,
-        client_id: spotifyClientId
-      }), {
-        headers: {
-          'Authorization': 'Basic ' + Buffer.from(spotifyClientId + ':' + spotifyClientSecret).toString('base64'),
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
-
-    // Update stored tokens
-    spotifyAccessToken = response.data.access_token;
-    if (response.data.refresh_token) {
-      spotifyRefreshToken = response.data.refresh_token;
-    }
-    persistSpotifyTokensToDisk();
-
-    console.log('🎵 Spotify access token refreshed successfully');
+    
+    // Broadcast status update via SSE
+    broadcastSSE('status', { loggedIn: true, refreshed: true });
+    
     res.json({ 
       success: true, 
       access_token: spotifyAccessToken,
       refresh_token: spotifyRefreshToken,
-      expires_in: response.data.expires_in || 3600
+      expires_in: data.expires_in || 3600
     });
-
   } catch (error) {
-    console.error('Spotify token refresh error:', error.message);
-    console.error('Refresh token error details:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    });
+    console.error('❌ Token refresh error:', error.message);
     
-    // Handle specific refresh token errors
     if (error.response?.data?.error === 'invalid_grant') {
-      console.error('Refresh token is invalid or expired - user needs to re-authenticate');
-      spotifyRefreshToken = ''; // Clear invalid refresh token
-      spotifyAccessToken = ''; // Clear access token
+      spotifyRefreshToken = '';
+      spotifyAccessToken = '';
       persistSpotifyTokensToDisk();
     }
     
@@ -816,114 +1176,29 @@ backend.post('/api/spotify/refresh-token', async (req, res) => {
   }
 });
 
-// Search Spotify tracks
-backend.get('/search', async (req, res) => {
-  const { q, type = 'track' } = req.query;
-  
-  if (!q) {
-    return res.status(400).json({ error: 'Query parameter "q" is required' });
-  }
+// Note: Search, devices, and transfer endpoints are now handled by the generic proxy
+// at /api/spotify/* which forwards to middleware /spotify/*
+// Use /api/spotify/v1/search, /api/spotify/v1/me/player/devices, etc.
 
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.get('https://api.spotify.com/v1/search', {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      },
-      params: {
-        q: q,
-        type: type,
-        limit: 20
-      }
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Search error:', error.message);
-    
-    const errorMessage = error.response?.data?.error?.message || 
-                        error.message || 
-                        'Search failed';
-    
-    res.status(error.response?.status || 500).json({ error: errorMessage });
-  }
-});
-
-// Get available Spotify Connect devices
-backend.get('/devices', async (req, res) => {
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.get('https://api.spotify.com/v1/me/player/devices', {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Devices error:', error.message);
-    
-    const errorMessage = error.response?.data?.error?.message || 
-                        error.message || 
-                        'Failed to get devices';
-    
-    res.status(error.response?.status || 500).json({ error: errorMessage });
-  }
-});
-
-// Transfer playback to a specific device
-backend.put('/devices/transfer', async (req, res) => {
-  const { device_id } = req.body;
-  
-  if (!device_id) {
-    return res.status(400).json({ error: 'device_id is required' });
-  }
-
-  if (!spotifyAccessToken) {
-    return res.status(401).json({ error: 'Not authenticated with Spotify' });
-  }
-
-  try {
-    const response = await axios.put('https://api.spotify.com/v1/me/player', {
-      device_ids: [device_id],
-      play: true
-    }, {
-      headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Transfer error:', error.message);
-    
-    const errorMessage = error.response?.data?.error?.message || 
-                        error.message || 
-                        'Failed to transfer playback';
-    
-    res.status(error.response?.status || 500).json({ error: errorMessage });
-  }
-});
-
-// HTTPS server setup
+// HTTPS server setup (for Spotify authentication)
 const httpsOptions = {
   key: fs.readFileSync(path.join(__dirname, 'server-key.pem')),
   cert: fs.readFileSync(path.join(__dirname, 'server-cert.pem'))
 };
 
 https.createServer(httpsOptions, backend).listen(backendPort, '0.0.0.0', () => {
-  console.log(`Backend listening for notifications on https://0.0.0.0:${backendPort}`);
-  console.log(`Hubitat webhook endpoint: https://0.0.0.0:${backendPort}/api/hubitat/webhook`);
-  console.log(`Network accessible at: https://${currentIP}:${backendPort}/api/hubitat/webhook`);
+  console.log(`🔒 HTTPS Backend listening on https://0.0.0.0:${backendPort}`);
+  console.log(`   Spotify OAuth: https://${currentIP}:${backendPort}/auth/login`);
+});
+
+// HTTP server setup (for Reolink and Hubitat webhooks)
+const http = require('http');
+const httpPort = 4713;
+
+http.createServer(backend).listen(httpPort, '0.0.0.0', () => {
+  console.log(`🌐 HTTP Backend listening on http://0.0.0.0:${httpPort}`);
+  console.log(`   Reolink webhook: http://${currentIP}:${httpPort}/api/notify`);
+  console.log(`   Hubitat webhook: http://${currentIP}:${httpPort}/api/hubitat/webhook`);
 });
 
 // --- Electron window setup ---
@@ -976,9 +1251,25 @@ function createWindow() {
       // For external URLs, use normal certificate verification
       callback(-3); // -3 means "use default verification"
     } catch (error) {
-      // If URL parsing fails, use default verification
-      console.warn('Certificate verification: Invalid URL format, using default verification');
-      callback(-3);
+      // If URL parsing fails, check if it's a local IP by other means
+      const urlString = request.url || '';
+      console.log(`Certificate verification: URL parsing failed for: ${urlString}`);
+      
+      // Try to extract IP from the URL string directly
+      const ipMatch = urlString.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+      if (ipMatch) {
+        const ip = ipMatch[1];
+        if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.') || 
+            ip === '127.0.0.1' || ip === 'localhost') {
+          console.log(`✅ Allowing self-signed certificate for IP: ${ip}`);
+          callback(0);
+          return;
+        }
+      }
+      
+      // If we can't determine it's local, allow it anyway for development
+      console.log('Certificate verification: Allowing unknown URL for development');
+      callback(0);
     }
   });
   
@@ -1019,17 +1310,22 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             webSecurity: false,
-            allowRunningInsecureContent: true
+            allowRunningInsecureContent: true,
+            devTools: false // Disable dev tools for popup
           },
           // Window appearance
           frame: true,
           titleBarStyle: 'default',
-          show: true,
+          show: true, // Show immediately to prevent closing issues
           autoHideMenuBar: true,
           minimizable: true,
           maximizable: false,
           closable: true,
-          resizable: true
+          resizable: true,
+          // Additional options to prevent immediate closing
+          skipTaskbar: false,
+          focusable: true,
+          movable: true
         }
       };
     }

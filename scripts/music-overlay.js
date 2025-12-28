@@ -121,6 +121,12 @@
         return;
       }
 
+      // Determine what changed before updating state
+      const wasPlaying = this.state?.isPlaying;
+      const isNowPlaying = state.isPlaying;
+      const playingStateChanged = wasPlaying !== isNowPlaying;
+      const trackChanged = this.hasTrackChanged(state);
+
       this.state = state;
 
       if (!state.track) {
@@ -136,7 +142,28 @@
         return;
       }
 
-      this.activityTimestamp = Date.now();
+      // Only update activity timestamp if playing state changed (user action)
+      // Don't update it on track changes - overlay should stay visible and just update content
+      if (playingStateChanged) {
+        this.activityTimestamp = Date.now();
+      }
+      // If only track changed but still playing, don't reset timestamp - keep overlay visible
+    }
+
+    hasTrackChanged(newState) {
+      if (!this.state || !this.state.track || !newState.track) {
+        return !this.state?.track && !!newState.track;
+      }
+      
+      const oldTrack = this.state.track;
+      const newTrack = newState.track;
+      
+      return (
+        oldTrack.title !== newTrack.title ||
+        oldTrack.artist !== newTrack.artist ||
+        oldTrack.imageUrl !== newTrack.imageUrl ||
+        oldTrack.id !== newTrack.id
+      );
     }
 
     hasStateChanged(newState) {
